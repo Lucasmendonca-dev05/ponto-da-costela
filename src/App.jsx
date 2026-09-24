@@ -75,7 +75,7 @@ const MAPS_EMBED_URL = `https://www.google.com/maps?q=${MAPS_QUERY}&output=embed
   Vídeo de fundo: sobrevoo de drone pela fachada e salão do Ponto da Costela.
   Arquivos em public/videos (1080p para telas grandes, 720p para celular).
   Se não carregarem (ex.: código colado no Claude Artifacts sem os arquivos),
-  o fundo usa o poster + brasas em canvas.
+  o navegador tenta os mockups de CDN e, por fim, usa o poster + brasas em canvas.
 */
 const LOCAL_VIDEO = {
   large: { src: "videos/ponto-da-costela-1080.mp4", type: "video/mp4" },
@@ -83,7 +83,16 @@ const LOCAL_VIDEO = {
   // Para navegadores sem H.264 (ex.: Chromium de código aberto)
   webm: { src: "videos/ponto-da-costela-720.webm", type: "video/webm" },
 };
+const MOCK_VIDEOS = [
+  { src: "https://videos.pexels.com/video-files/857032/857032-hd_1280_720_25fps.mp4", type: "video/mp4" },
+  {
+    src: "https://assets.mixkit.co/videos/preview/mixkit-fire-burning-in-the-dark-1162-large.mp4",
+    type: "video/mp4",
+  },
+];
 const VIDEO_POSTER = "images/poster-fachada.jpg";
+const VIDEO_POSTER_FALLBACK =
+  "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1600&q=70";
 
 const PHOTOS = {
   fachada: "images/poster-fachada.jpg",
@@ -94,14 +103,11 @@ const PHOTOS = {
 function getVideoSources() {
   const isSmall = typeof window !== "undefined" && window.innerWidth < 768;
   const local = isSmall ? [LOCAL_VIDEO.small, LOCAL_VIDEO.large] : [LOCAL_VIDEO.large, LOCAL_VIDEO.small];
-  return [...local, LOCAL_VIDEO.webm];
+  return [...local, LOCAL_VIDEO.webm, ...MOCK_VIDEOS];
 }
 
-/*
-  Fotos reais dos pratos: salve em public/images/pratos/ e mapeie aqui pelo id do item,
-  ex.: "pf-picanha": "images/pratos/picanha.jpg". Sem foto, o card usa a arte padrão da casa.
-*/
-const DISH_PHOTOS = {};
+const img = (id) =>
+  `https://images.unsplash.com/${id}?auto=format&fit=crop&w=800&q=70`;
 
 /* ============================================================
    CARDÁPIO OFICIAL (transcrito do cardápio impresso da casa)
@@ -158,6 +164,7 @@ const MENU = [
     price: 25,
     popular: true,
     emoji: "🥩",
+    image: img("photo-1544025162-d76694265947"),
   },
   {
     id: "pf-arrumadinho-charque",
@@ -167,6 +174,7 @@ const MENU = [
     price: 26,
     options: [OPT_ARROZ_OPCIONAL],
     emoji: "🫘",
+    image: img("photo-1512058564366-18510be2db19"),
   },
   {
     id: "pf-arrumadinho-carne-sol",
@@ -176,6 +184,7 @@ const MENU = [
     price: 27,
     options: [OPT_ARROZ_OPCIONAL],
     emoji: "🫘",
+    image: img("photo-1512058564366-18510be2db19"),
   },
   {
     id: "pf-camarao-parmegiana",
@@ -184,6 +193,7 @@ const MENU = [
     description: PARMEGIANA_DESC("filé de camarão"),
     price: 28,
     emoji: "🦐",
+    image: img("photo-1565680018434-b513d5e5fd47"),
   },
   {
     id: "pf-file-parmegiana",
@@ -192,6 +202,7 @@ const MENU = [
     description: PARMEGIANA_DESC("filé"),
     price: 28,
     emoji: "🍝",
+    image: img("photo-1604908176997-125f25cc6f3d"),
   },
   {
     id: "pf-frango-parmegiana",
@@ -200,6 +211,7 @@ const MENU = [
     description: PARMEGIANA_DESC("filé de frango"),
     price: 26,
     emoji: "🍗",
+    image: img("photo-1632778149955-e80f8ceca2e8"),
   },
   {
     id: "pf-cupim-molho",
@@ -209,6 +221,7 @@ const MENU = [
     price: 27,
     options: OPTS_PF,
     emoji: "🍖",
+    image: img("photo-1558030006-450675393462"),
   },
   {
     id: "pf-cupim-assado",
@@ -218,6 +231,7 @@ const MENU = [
     price: 27,
     options: OPTS_PF,
     emoji: "🍖",
+    image: img("photo-1529692236671-f1f6cf9683ba"),
   },
   {
     id: "pf-carne-de-sol",
@@ -227,6 +241,7 @@ const MENU = [
     price: 27,
     options: OPTS_PF,
     emoji: "🥩",
+    image: img("photo-1504674900247-0877df9cc836"),
   },
   {
     id: "pf-frango-empanado",
@@ -236,6 +251,7 @@ const MENU = [
     price: 25,
     options: OPTS_PF,
     emoji: "🍗",
+    image: img("photo-1598103442097-8b74394b95c6"),
   },
   {
     id: "pf-galeto",
@@ -245,6 +261,7 @@ const MENU = [
     price: 27,
     options: OPTS_PF,
     emoji: "🍗",
+    image: img("photo-1598515214211-89d3c73ae83b"),
   },
   {
     id: "pf-maminha",
@@ -254,6 +271,7 @@ const MENU = [
     price: 36,
     options: [...OPTS_PF, OPT_PONTO],
     emoji: "🥩",
+    image: img("photo-1529692236671-f1f6cf9683ba"),
   },
   {
     id: "pf-picanha",
@@ -264,6 +282,7 @@ const MENU = [
     popular: true,
     options: [...OPTS_PF, OPT_PONTO],
     emoji: "🥩",
+    image: img("photo-1594041680534-e8c8cdebd659"),
   },
   {
     id: "pf-caldeirada",
@@ -272,6 +291,7 @@ const MENU = [
     description: "Arroz, pirão e caldeirada.",
     price: 30,
     emoji: "🍲",
+    image: img("photo-1547592180-85f173990554"),
   },
 
   /* ---------- CHAPAS ESPECIAIS ---------- */
@@ -284,6 +304,7 @@ const MENU = [
     serves: "1kg",
     popular: true,
     emoji: "🥩",
+    image: img("photo-1544025162-d76694265947"),
   },
   {
     id: "chapa-cupim",
@@ -297,6 +318,7 @@ const MENU = [
     ],
     options: [OPT_ARROZ, { ...OPT_FEIJAO, choices: ["Mulatinho", "Macassar", "Tropeiro"] }, OPT_PURE_BATATA],
     emoji: "🍖",
+    image: img("photo-1558030006-450675393462"),
   },
   {
     id: "chapa-maminha",
@@ -307,6 +329,7 @@ const MENU = [
     serves: "1kg",
     options: [OPT_PONTO],
     emoji: "🥩",
+    image: img("photo-1529692236671-f1f6cf9683ba"),
   },
   {
     id: "chapa-picanha",
@@ -317,6 +340,7 @@ const MENU = [
     serves: "1kg",
     options: [OPT_PONTO],
     emoji: "🔥",
+    image: img("photo-1594041680534-e8c8cdebd659"),
   },
 
   /* ---------- PRATOS COMPLETOS ---------- */
@@ -329,6 +353,7 @@ const MENU = [
     serves: "2 pessoas",
     options: [OPT_ARROZ_OPCIONAL],
     emoji: "🫘",
+    image: img("photo-1512058564366-18510be2db19"),
   },
   {
     id: "comp-arrumadinho-carne-sol",
@@ -339,6 +364,7 @@ const MENU = [
     serves: "2 pessoas",
     options: [OPT_ARROZ_OPCIONAL],
     emoji: "🫘",
+    image: img("photo-1512058564366-18510be2db19"),
   },
   {
     id: "comp-carne-sol-queijo",
@@ -349,6 +375,7 @@ const MENU = [
     options: OPTS_PF,
     popular: true,
     emoji: "🧀",
+    image: img("photo-1504674900247-0877df9cc836"),
   },
   {
     id: "comp-costela-bovina-bafo",
@@ -359,6 +386,7 @@ const MENU = [
     options: OPTS_PF,
     popular: true,
     emoji: "🥩",
+    image: img("photo-1544025162-d76694265947"),
   },
   {
     id: "comp-costela-suina-bafo",
@@ -368,6 +396,7 @@ const MENU = [
     variants: g500kg(70, 100),
     options: OPTS_PF,
     emoji: "🍖",
+    image: img("photo-1529692236671-f1f6cf9683ba"),
   },
   {
     id: "comp-feijoada",
@@ -379,6 +408,7 @@ const MENU = [
       { id: "litro", label: "1 litro", price: 65 },
     ],
     emoji: "🍲",
+    image: img("photo-1547592166-23ac45744acd"),
   },
   {
     id: "comp-fraldinha",
@@ -388,6 +418,7 @@ const MENU = [
     variants: g500kg(85, 115),
     options: [...OPTS_PF, OPT_PONTO],
     emoji: "🥩",
+    image: img("photo-1558030006-450675393462"),
   },
   {
     id: "comp-galeto",
@@ -397,6 +428,7 @@ const MENU = [
     price: 65,
     options: OPTS_PF,
     emoji: "🍗",
+    image: img("photo-1598515214211-89d3c73ae83b"),
   },
   {
     id: "comp-maminha",
@@ -406,6 +438,7 @@ const MENU = [
     variants: g500kg(110, 160),
     options: [...OPTS_PF, OPT_PONTO],
     emoji: "🥩",
+    image: img("photo-1529692236671-f1f6cf9683ba"),
   },
   {
     id: "comp-picanha",
@@ -415,6 +448,7 @@ const MENU = [
     variants: g500kg(125, 180),
     options: [...OPTS_PF, OPT_PONTO],
     emoji: "🔥",
+    image: img("photo-1594041680534-e8c8cdebd659"),
   },
 
   /* ---------- BEBIDAS NÃO ALCOÓLICAS ---------- */
@@ -498,10 +532,6 @@ const MENU = [
   { id: "johnnie-walker", category: "whisky", name: "Johnnie Walker", variants: doseLitro(11, 155), emoji: "🥃" },
   { id: "white-horse", category: "whisky", name: "White Horse", variants: doseLitro(10, 140), emoji: "🥃" },
 ];
-
-MENU.forEach((item) => {
-  if (DISH_PHOTOS[item.id]) item.image = DISH_PHOTOS[item.id];
-});
 
 const MENU_BY_ID = Object.fromEntries(MENU.map((item) => [item.id, item]));
 
@@ -818,7 +848,7 @@ function BackgroundVideo({ videoRef, playing, focusMode, onAllSourcesFailed, vid
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,#5a2a0c_0%,#1c140e_45%,#0f0f11_80%)]" />
       <div
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${VIDEO_POSTER})` }}
+        style={{ backgroundImage: `url(${VIDEO_POSTER}), url(${VIDEO_POSTER_FALLBACK})` }}
       />
       {!videoFailed && (
         <video
@@ -861,14 +891,9 @@ function FoodImage({ src, alt, emoji, className = "" }) {
       <div
         role="img"
         aria-label={alt}
-        className={`relative flex items-center justify-center overflow-hidden bg-[#141211] ${className}`}
+        className={`flex items-center justify-center bg-[radial-gradient(circle_at_30%_20%,#e6b95c33,#18181b_70%)] text-6xl ${className}`}
       >
-        {/* Grelha estilizada + brilho de brasa */}
-        <span className="absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent_0_22px,rgba(230,185,92,0.07)_22px_24px)]" />
-        <span className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_85%,rgba(234,88,12,0.35),transparent_60%)]" />
-        <span className="relative flex aspect-square h-[62%] max-h-28 items-center justify-center rounded-full border border-[#e6b95c]/50 bg-black/40 text-[2.5em] shadow-[0_0_40px_-8px_rgba(234,88,12,0.6)]">
-          <span aria-hidden="true">{emoji}</span>
-        </span>
+        <span aria-hidden="true">{emoji}</span>
       </div>
     );
   }
@@ -1213,9 +1238,9 @@ function AboutSection() {
             className="row-span-2 h-full min-h-[320px] w-full rounded-2xl"
           />
           <FoodImage
-            src={PHOTOS.teloes}
-            alt="Salão do Ponto da Costela com telões"
-            emoji="📺"
+            src={MENU_BY_ID["chapa-costela-bafo"].image}
+            alt="Costela na brasa"
+            emoji="🥩"
             className="h-full min-h-[155px] w-full rounded-2xl"
           />
           <FoodImage
@@ -2196,7 +2221,7 @@ function CartDrawer({ open, onClose, cart, onChangeQty, onDelete, onClear }) {
                       src={line.image}
                       alt={line.name}
                       emoji={line.emoji}
-                      className="h-16 w-16 shrink-0 rounded-xl text-xs"
+                      className="h-16 w-16 shrink-0 rounded-xl text-3xl"
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
