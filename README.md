@@ -12,14 +12,21 @@ npm run dev      # desenvolvimento
 npm run build    # build de produção em dist/
 ```
 
-## Vídeo 3D de fundo (Google Flow)
+## Vídeo e fotos da casa
 
-Exporte o vídeo do Google Flow e salve como:
+O fundo é o vídeo de drone da fachada e do salão, comprimido em `public/videos/`:
 
-- `public/videos/brasa-google-flow.webm` e/ou
-- `public/videos/brasa-google-flow.mp4`
+| Arquivo | Uso |
+| --- | --- |
+| `ponto-da-costela-1080.mp4` (5 MB) | telas grandes |
+| `ponto-da-costela-720.mp4` (2,2 MB) | celular |
+| `ponto-da-costela-720.webm` (2,9 MB) | navegadores sem H.264 |
 
-Sem esses arquivos, o site tenta os vídeos de mockup (Pexels/Mixkit). Se nenhum carregar, aparecem a imagem de poster e as fagulhas animadas em canvas. As fontes ficam em `VIDEO_SOURCES` no topo do `App.jsx`.
+`public/images/` tem o poster (fachada) e duas fotos do salão tiradas do mesmo vídeo. Se nada disso carregar (por exemplo, com só o `App.jsx` colado no Claude Artifacts), o fundo cai em vídeos de mockup, depois no poster e por fim em fagulhas animadas.
+
+## Visual
+
+Inspirado em sites de restaurante elegantes: títulos em Playfair Display, detalhes em letra cursiva (Great Vibes), texto em Raleway, dourado sobre carvão, botões com contorno e uma seção clara em creme.
 
 ## O que conferir antes de publicar
 

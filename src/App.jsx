@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown,
+  ArrowRight,
   Armchair,
   Beef,
   Beer,
@@ -12,12 +13,10 @@ import {
   ChefHat,
   ChevronRight,
   CircleParking,
-  Clock,
   Drumstick,
   Eye,
   EyeOff,
   Flame,
-  Heart,
   LayoutGrid,
   MapPin,
   Menu,
@@ -25,6 +24,7 @@ import {
   Navigation,
   PartyPopper,
   Pause,
+  Phone,
   Play,
   Plus,
   Sandwich,
@@ -49,6 +49,8 @@ const BRAND = {
   city: "Recife",
   slogan: "Costela na brasa, churrasco raiz e petiscos de respeito",
   address: "R. João Liberato, 201 - Arruda, Recife - PE",
+  street: "R. João Liberato, 201",
+  district: "Arruda, Recife - PE",
   cep: "52120-070",
   whatsappDisplay: "(81) 99950-2765",
   whatsappNumber: "5581999502765",
@@ -59,6 +61,9 @@ const BRAND = {
 
 const WHATSAPP_DEFAULT_URL =
   "https://wa.me/5581999502765?text=Ol%C3%A1,%20gostaria%20de%20fazer%20um%20pedido/reserva%20no%20Ponto%20da%20Costela!";
+const WHATSAPP_RESERVA_URL = `https://wa.me/${BRAND.whatsappNumber}?text=${encodeURIComponent(
+  "Olá! Gostaria de reservar uma mesa no Ponto da Costela. 🔥"
+)}`;
 const INSTAGRAM_URL = `https://www.instagram.com/${BRAND.instagram}/`;
 const MAPS_QUERY = encodeURIComponent(`${BRAND.address}, ${BRAND.cep}`);
 const GOOGLE_MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${MAPS_QUERY}`;
@@ -66,26 +71,39 @@ const WAZE_URL = `https://waze.com/ul?q=${MAPS_QUERY}&navigate=yes`;
 const MAPS_EMBED_URL = `https://www.google.com/maps?q=${MAPS_QUERY}&output=embed`;
 
 /*
-  Vídeo 3D de fundo (Google Flow).
-  A primeira fonte é o arquivo exportado do Google Flow — coloque-o em
-  public/videos/brasa-google-flow.mp4 (ou .webm). Se ele não existir, o
-  navegador cai automaticamente nas fontes de mockup seguintes. Se nenhuma
-  carregar, o fundo usa o poster + a camada de brasas animadas em canvas.
+  Vídeo de fundo: sobrevoo de drone pela fachada e salão do Ponto da Costela.
+  Arquivos em public/videos (1080p para telas grandes, 720p para celular).
+  Se não carregarem (ex.: código colado no Claude Artifacts sem os arquivos),
+  o navegador tenta os mockups de CDN e, por fim, usa o poster + brasas em canvas.
 */
-const VIDEO_SOURCES = [
-  { src: "videos/brasa-google-flow.webm", type: "video/webm" },
-  { src: "videos/brasa-google-flow.mp4", type: "video/mp4" },
-  {
-    src: "https://videos.pexels.com/video-files/857032/857032-hd_1280_720_25fps.mp4",
-    type: "video/mp4",
-  },
+const LOCAL_VIDEO = {
+  large: { src: "videos/ponto-da-costela-1080.mp4", type: "video/mp4" },
+  small: { src: "videos/ponto-da-costela-720.mp4", type: "video/mp4" },
+  // Para navegadores sem H.264 (ex.: Chromium de código aberto)
+  webm: { src: "videos/ponto-da-costela-720.webm", type: "video/webm" },
+};
+const MOCK_VIDEOS = [
+  { src: "https://videos.pexels.com/video-files/857032/857032-hd_1280_720_25fps.mp4", type: "video/mp4" },
   {
     src: "https://assets.mixkit.co/videos/preview/mixkit-fire-burning-in-the-dark-1162-large.mp4",
     type: "video/mp4",
   },
 ];
-const VIDEO_POSTER =
+const VIDEO_POSTER = "images/poster-fachada.jpg";
+const VIDEO_POSTER_FALLBACK =
   "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1600&q=70";
+
+const PHOTOS = {
+  fachada: "images/poster-fachada.jpg",
+  teloes: "images/salao-teloes.jpg",
+  mesas: "images/salao-mesas.jpg",
+};
+
+function getVideoSources() {
+  const isSmall = typeof window !== "undefined" && window.innerWidth < 768;
+  const local = isSmall ? [LOCAL_VIDEO.small, LOCAL_VIDEO.large] : [LOCAL_VIDEO.large, LOCAL_VIDEO.small];
+  return [...local, LOCAL_VIDEO.webm, ...MOCK_VIDEOS];
+}
 
 const img = (id) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=800&q=70`;
@@ -485,7 +503,18 @@ function InstagramIcon({ className = "h-5 w-5" }) {
 }
 
 /* ============================================================
-   CAMADA DE FUNDO: VÍDEO 3D + BRASAS EM CANVAS
+   ESTILO: TOKENS DE CLASSE REUTILIZÁVEIS
+   ============================================================ */
+
+const BTN_GOLD =
+  "inline-flex items-center justify-center gap-2 rounded-full bg-[#e6b95c] px-6 py-3 font-display text-[15px] font-semibold text-[#141210] shadow-lg shadow-[#e6b95c]/20 transition hover:bg-[#f0c977] active:scale-[0.98]";
+const BTN_OUTLINE =
+  "inline-flex items-center justify-center gap-2 rounded-full border border-[#e6b95c]/70 px-5 py-2.5 font-display text-[15px] text-[#e6b95c] transition hover:bg-[#e6b95c]/10 active:scale-[0.98]";
+const BTN_OUTLINE_DARK =
+  "inline-flex items-center justify-center gap-2 rounded-full border border-[#1a1714]/40 px-5 py-2.5 font-display text-[15px] text-[#1a1714] transition hover:bg-[#1a1714]/5 active:scale-[0.98]";
+
+/* ============================================================
+   CAMADA DE FUNDO: VÍDEO + BRASAS EM CANVAS (FALLBACK)
    ============================================================ */
 
 function EmberCanvas({ active }) {
@@ -578,19 +607,20 @@ function EmberCanvas({ active }) {
 
 function BackgroundVideo({ videoRef, playing, focusMode, onAllSourcesFailed, videoFailed }) {
   const failures = useRef(0);
+  const sources = useMemo(getVideoSources, []);
 
   const handleSourceError = () => {
     failures.current += 1;
-    if (failures.current >= VIDEO_SOURCES.length) onAllSourcesFailed();
+    if (failures.current >= sources.length) onAllSourcesFailed();
   };
 
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
       {/* Base quente caso poster e vídeo falhem */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,#7c2d12_0%,#1c0f0a_45%,#0f0f11_80%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,#5a2a0c_0%,#1c140e_45%,#0f0f11_80%)]" />
       <div
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${VIDEO_POSTER})` }}
+        style={{ backgroundImage: `url(${VIDEO_POSTER}), url(${VIDEO_POSTER_FALLBACK})` }}
       />
       {!videoFailed && (
         <video
@@ -602,20 +632,21 @@ function BackgroundVideo({ videoRef, playing, focusMode, onAllSourcesFailed, vid
           preload="auto"
           poster={VIDEO_POSTER}
           disablePictureInPicture
-          className={`absolute inset-0 h-full w-full transform-gpu object-cover will-change-transform transition-opacity duration-700 ${
-            playing ? "opacity-100" : "opacity-70"
+          className={`absolute inset-0 h-full w-full transform-gpu object-cover will-change-transform [filter:sepia(.35)_saturate(.9)_brightness(.85)] transition-opacity duration-700 ${
+            playing ? "opacity-100" : "opacity-80"
           }`}
         >
-          {VIDEO_SOURCES.map((source) => (
+          {sources.map((source) => (
             <source key={source.src} src={source.src} type={source.type} onError={handleSourceError} />
           ))}
         </video>
       )}
+      {/* Tom quente de luz de brasa sobre o vídeo */}
+      <div className="absolute inset-0 bg-[#3b1a06]/35 mix-blend-multiply" />
       {/* Overlay para legibilidade */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-[#0f0f11] backdrop-blur-sm" />
-      {/* Brilho de brasa vindo de baixo + fagulhas acima do overlay */}
-      <div className="absolute inset-x-0 bottom-0 h-2/3 bg-[radial-gradient(ellipse_at_bottom,rgba(234,88,12,0.28)_0%,rgba(220,38,38,0.12)_35%,transparent_70%)]" />
-      <EmberCanvas active={!focusMode} />
+      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-[radial-gradient(ellipse_at_bottom,rgba(234,88,12,0.18)_0%,transparent_70%)]" />
+      <EmberCanvas active={videoFailed && !focusMode} />
     </div>
   );
 }
@@ -631,7 +662,7 @@ function FoodImage({ src, alt, emoji, className = "" }) {
       <div
         role="img"
         aria-label={alt}
-        className={`flex items-center justify-center bg-[radial-gradient(circle_at_30%_20%,#ea580c55,#18181b_70%)] text-6xl ${className}`}
+        className={`flex items-center justify-center bg-[radial-gradient(circle_at_30%_20%,#e6b95c33,#18181b_70%)] text-6xl ${className}`}
       >
         <span aria-hidden="true">{emoji}</span>
       </div>
@@ -649,35 +680,62 @@ function FoodImage({ src, alt, emoji, className = "" }) {
   );
 }
 
-function SectionTitle({ eyebrow, title, subtitle, icon: Icon }) {
+function Ornament({ className = "" }) {
   return (
-    <div className="mx-auto mb-10 max-w-2xl text-center md:mb-14">
-      <span className="inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1 text-xs font-semibold tracking-widest text-orange-400 uppercase">
-        {Icon && <Icon className="h-3.5 w-3.5" />}
-        {eyebrow}
-      </span>
-      <h2 className="mt-4 text-3xl font-black tracking-tight text-white md:text-5xl">{title}</h2>
-      {subtitle && <p className="mt-4 text-base text-zinc-400 md:text-lg">{subtitle}</p>}
+    <span className={`flex items-center justify-center gap-3 ${className}`} aria-hidden="true">
+      <span className="h-px w-10 bg-gradient-to-r from-transparent to-current" />
+      <Flame className="h-3.5 w-3.5" />
+      <span className="h-px w-10 bg-gradient-to-l from-transparent to-current" />
+    </span>
+  );
+}
+
+function SectionTitle({ script, title, subtitle, light = false, align = "center" }) {
+  const centered = align === "center";
+  return (
+    <div className={`mb-10 max-w-2xl md:mb-14 ${centered ? "mx-auto text-center" : ""}`}>
+      {script && (
+        <p className={`font-script text-3xl md:text-4xl ${light ? "text-[#a0712a]" : "text-[#e6b95c]"}`}>{script}</p>
+      )}
+      <h2
+        className={`mt-1 font-display text-4xl leading-tight font-medium md:text-6xl ${
+          light ? "text-[#1a1714]" : "text-[#f3e3bf]"
+        }`}
+      >
+        {title}
+      </h2>
+      {centered && <Ornament className={`mt-5 ${light ? "text-[#a0712a]" : "text-[#e6b95c]/70"}`} />}
+      {subtitle && (
+        <p className={`mt-5 text-base leading-relaxed md:text-lg ${light ? "text-[#5c5247]" : "text-zinc-400"}`}>
+          {subtitle}
+        </p>
+      )}
     </div>
   );
 }
 
-function Logo({ compact = false }) {
+function Monogram({ className = "h-12 w-12" }) {
   return (
-    <a href="#inicio" className="group flex items-center gap-2.5" aria-label="Ponto da Costela - início">
-      <span className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#dc2626] to-[#ea580c] shadow-lg shadow-orange-600/40 transition-transform group-hover:scale-105">
-        <Flame className="flame-flicker h-5 w-5 text-amber-100" />
-        <span className="absolute -bottom-1 left-1/2 h-1 w-7 -translate-x-1/2 rounded-full bg-zinc-800 ring-1 ring-zinc-600" />
+    <span
+      className={`relative flex shrink-0 items-center justify-center rounded-full border-2 border-[#e6b95c] text-[#e6b95c] ${className}`}
+    >
+      <span className="font-display text-lg leading-none font-semibold italic">
+        P<span className="text-[0.7em] not-italic">&amp;</span>C
       </span>
+      <Flame className="flame-flicker absolute -top-2 h-3.5 w-3.5 rounded-full bg-[#0f0f11] px-0.5 text-[#ea580c]" />
+    </span>
+  );
+}
+
+function Logo() {
+  return (
+    <a href="#inicio" className="group flex items-center gap-3" aria-label="Ponto da Costela - início">
+      <Monogram className="h-12 w-12 transition-transform group-hover:scale-105" />
       <span className="leading-none">
-        <span className="block text-lg font-black tracking-tight text-white">
-          Ponto da <span className="text-[#f59e0b]">Costela</span>
+        <span className="block font-display text-lg font-semibold text-[#f3e3bf]">Ponto da Costela</span>
+        <span className="mt-1 block text-[10px] font-semibold tracking-[0.3em] text-[#e6b95c]/80 uppercase">
+          Recife · Arruda
         </span>
-        {!compact && (
-          <span className="block text-[10px] font-semibold tracking-[0.3em] text-zinc-400 uppercase">
-            Recife · Arruda
-          </span>
-        )}
       </span>
     </a>
   );
@@ -696,15 +754,15 @@ function AnnouncementBar({ status }) {
     ? `🔥 Aberto hoje no Arruda até ${formatHour(status.closesAt)}! Venha provar a melhor costela na brasa do Recife!`
     : status.opensAt
       ? `🔥 Hoje abrimos às ${formatHour(status.opensAt)} no Arruda! Venha provar a melhor costela na brasa do Recife!`
-      : "🔥 Já fechamos por hoje — amanhã tem mais costela na brasa no Arruda! Peça sua reserva.";
+      : "🔥 Já fechamos por hoje — amanhã tem mais costela na brasa no Arruda! Faça sua reserva.";
 
   return (
-    <div className="relative z-50 bg-gradient-to-r from-[#dc2626] via-[#ea580c] to-[#dc2626] text-white">
-      <div className="mx-auto flex max-w-7xl items-center justify-center gap-3 px-4 py-2 text-center text-xs font-semibold sm:text-sm">
+    <div className="relative z-50 border-b border-[#e6b95c]/20 bg-gradient-to-r from-[#1a0c06] via-[#3a1408] to-[#1a0c06] text-[#f3e3bf]">
+      <div className="mx-auto flex max-w-7xl items-center justify-center gap-3 px-4 py-2 text-center text-xs font-medium sm:text-sm">
         <p className="line-clamp-2">{message}</p>
         <a
           href="#cardapio"
-          className="shrink-0 rounded-full bg-black/25 px-3 py-1 text-xs font-bold whitespace-nowrap ring-1 ring-white/30 transition hover:bg-black/40 active:scale-95"
+          className="shrink-0 rounded-full border border-[#e6b95c]/60 px-3 py-1 text-xs font-semibold whitespace-nowrap text-[#e6b95c] transition hover:bg-[#e6b95c]/10 active:scale-95"
         >
           Ver Cardápio
         </a>
@@ -720,45 +778,73 @@ function Navbar({ cartCount, onOpenCart }) {
     <header className="sticky top-0 z-40 border-b border-white/10 bg-black/40 backdrop-blur-md">
       <nav className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <Logo />
-        <ul className="hidden items-center gap-1 lg:flex">
+        <ul className="hidden items-center gap-1 xl:flex">
           {NAV_LINKS.map((link) => (
             <li key={link.href}>
               <a
                 href={link.href}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-300 transition hover:bg-white/5 hover:text-white"
+                className="rounded-full px-3 py-2 text-sm text-zinc-300 transition hover:text-[#e6b95c]"
               >
                 {link.label}
               </a>
             </li>
           ))}
         </ul>
+        <div className="hidden items-center gap-5 text-xs text-zinc-400 lg:flex xl:hidden">
+          <a href={`tel:+${BRAND.whatsappNumber}`} className="flex items-center gap-2 hover:text-[#e6b95c]">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e6b95c]/50 text-[#e6b95c]">
+              <Phone className="h-3.5 w-3.5" />
+            </span>
+            <span className="leading-tight">
+              Ligue
+              <span className="block font-display text-sm text-[#f3e3bf]">{BRAND.whatsappDisplay}</span>
+            </span>
+          </a>
+          <a href="#localizacao" className="flex items-center gap-2 hover:text-[#e6b95c]">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e6b95c]/50 text-[#e6b95c]">
+              <MapPin className="h-3.5 w-3.5" />
+            </span>
+            <span className="leading-tight">
+              {BRAND.street}
+              <span className="block">{BRAND.district}</span>
+            </span>
+          </a>
+        </div>
         <div className="flex items-center gap-2">
+          <div className="hidden items-center gap-2 xl:flex">
+            <a href="#cardapio" className={BTN_OUTLINE}>
+              <ArrowRight className="h-4 w-4" />
+              Ver Cardápio
+            </a>
+          </div>
+          <div className="hidden items-center md:flex">
+            <a
+              href={WHATSAPP_DEFAULT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${BTN_GOLD} !px-5 !py-2.5`}
+            >
+              <WhatsAppIcon className="h-4 w-4" />
+              Pedir / Reservar no WhatsApp
+            </a>
+          </div>
           <button
             type="button"
             onClick={onOpenCart}
-            className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white transition hover:bg-white/10 active:scale-95"
+            className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[#e6b95c]/50 text-[#e6b95c] transition hover:bg-[#e6b95c]/10 active:scale-95"
             aria-label={`Abrir pedido (${cartCount} itens)`}
           >
             <ShoppingBag className="h-5 w-5" />
             {cartCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#f59e0b] px-1 text-[11px] font-black text-black">
+              <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ea580c] px-1 text-[11px] font-bold text-white">
                 {cartCount}
               </span>
             )}
           </button>
-          <a
-            href={WHATSAPP_DEFAULT_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden items-center gap-2 rounded-xl bg-gradient-to-r from-[#dc2626] to-[#ea580c] px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-red-600/30 transition hover:shadow-orange-500/50 active:scale-95 md:inline-flex"
-          >
-            <WhatsAppIcon className="h-4 w-4" />
-            Pedir / Reservar no WhatsApp
-          </a>
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
-            className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white lg:hidden"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white xl:hidden"
             aria-label={open ? "Fechar menu" : "Abrir menu"}
             aria-expanded={open}
           >
@@ -767,26 +853,26 @@ function Navbar({ cartCount, onOpenCart }) {
         </div>
       </nav>
       {open && (
-        <div className="border-t border-white/10 bg-black/80 backdrop-blur-md lg:hidden">
+        <div className="border-t border-white/10 bg-black/85 backdrop-blur-md xl:hidden">
           <ul className="mx-auto flex max-w-7xl flex-col px-4 py-3">
             {NAV_LINKS.map((link) => (
               <li key={link.href}>
                 <a
                   href={link.href}
                   onClick={() => setOpen(false)}
-                  className="flex items-center justify-between rounded-lg px-3 py-3.5 text-base font-medium text-zinc-200 active:bg-white/10"
+                  className="flex items-center justify-between rounded-lg px-3 py-3.5 font-display text-lg text-[#f3e3bf] active:bg-white/10"
                 >
                   {link.label}
-                  <ChevronRight className="h-4 w-4 text-zinc-500" />
+                  <ChevronRight className="h-4 w-4 text-[#e6b95c]/60" />
                 </a>
               </li>
             ))}
-            <li className="pt-2">
+            <li className="pt-2 md:hidden">
               <a
                 href={WHATSAPP_DEFAULT_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#dc2626] to-[#ea580c] px-4 py-3.5 font-bold text-white active:scale-[0.98]"
+                className={`${BTN_GOLD} w-full`}
               >
                 <WhatsAppIcon className="h-5 w-5" />
                 Pedir / Reservar no WhatsApp
@@ -799,130 +885,256 @@ function Navbar({ cartCount, onOpenCart }) {
   );
 }
 
-function Hero() {
+function HoursStrip({ status }) {
+  return (
+    <div className="mt-14 w-full">
+      <p className="font-script text-3xl text-[#f3e3bf]">Horário de funcionamento</p>
+      <ul className="mt-5 grid grid-cols-4 gap-x-2 gap-y-4 sm:grid-cols-7">
+        {HOURS.map((row, index) => {
+          const isToday = index === status.day;
+          return (
+            <li
+              key={row.day}
+              className={`rounded-xl px-1 py-2 ${isToday ? "bg-[#e6b95c]/10 ring-1 ring-[#e6b95c]/40" : ""}`}
+            >
+              <p className="font-display text-sm text-[#e6b95c]">{row.day}</p>
+              <p className="mt-1 text-[11px] whitespace-nowrap text-zinc-300 sm:text-xs">
+                {formatHour(row.open)} – {formatHour(row.close)}
+              </p>
+              {isToday && <p className="mt-0.5 text-[10px] tracking-widest text-[#ea580c] uppercase">Hoje</p>}
+            </li>
+          );
+        })}
+      </ul>
+      <p className="mt-5 text-xs text-zinc-400">
+        Reservas para grupos e comemorações pelo WhatsApp ·{" "}
+        <span className="text-[#e6b95c]">{status.isOpen ? `aberto agora até ${formatHour(status.closesAt)}` : "fechado agora"}</span>
+      </p>
+    </div>
+  );
+}
+
+function Hero({ status }) {
   const badges = [
-    { icon: Star, label: `${BRAND.rating} no Google Reviews`, accent: "text-[#f59e0b]", fill: true },
-    { icon: Beef, label: `+${BRAND.followers.replace("+", "")} seguidores apaixonados por churrasco`, accent: "text-[#ea580c]" },
-    { icon: Beer, label: "Chopp e Cerveja Estupidamente Gelados", accent: "text-amber-300" },
+    { icon: Star, label: `${BRAND.rating} no Google Reviews`, fill: true },
+    { icon: Beef, label: `+${BRAND.followers.replace("+", "")} seguidores apaixonados por churrasco` },
+    { icon: Beer, label: "Chopp e Cerveja Estupidamente Gelados" },
   ];
 
   return (
     <section id="inicio" className="relative flex min-h-[calc(100svh-7rem)] scroll-mt-24 items-center">
-      <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 md:py-24">
-        <div className="max-w-3xl">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-zinc-200 backdrop-blur-md">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-500 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-500" />
-            </span>
-            {BRAND.slogan}
-          </span>
-          <h1 className="mt-6 text-4xl leading-[1.05] font-black tracking-tight text-white sm:text-6xl lg:text-7xl">
-            O Verdadeiro{" "}
-            <span className="bg-gradient-to-r from-[#f59e0b] via-[#ea580c] to-[#dc2626] bg-clip-text text-transparent">
-              Churrasco Raiz
-            </span>{" "}
-            no Coração do Arruda
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg text-zinc-300 md:text-xl">
-            Costela derretendo na brasa, petiscos fartos, hambúrguer artesanal e aquela cerveja
-            trincando de gelada.
-          </p>
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-            <a
-              href="#cardapio"
-              className="glow-btn group inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#dc2626] to-[#ea580c] px-7 py-4 text-base font-bold text-white transition active:scale-[0.98]"
+      <div className="mx-auto flex w-full max-w-5xl flex-col items-center px-4 pt-16 pb-12 text-center sm:px-6 md:pt-24">
+        <p className="font-script text-3xl text-[#e6b95c] md:text-4xl">Churrasco raiz desde o Arruda</p>
+        <h1 className="mt-3 font-display text-[2.6rem] leading-[1.05] font-medium text-[#f3e3bf] sm:text-6xl lg:text-7xl">
+          O Verdadeiro <em className="text-[#e6b95c]">Churrasco Raiz</em>
+          <br className="hidden sm:block" /> no Coração do Arruda
+        </h1>
+        <Ornament className="mt-6 text-[#e6b95c]/70" />
+        <p className="mt-6 max-w-2xl text-lg leading-relaxed text-zinc-300 md:text-xl">
+          Costela derretendo na brasa, petiscos fartos, hambúrguer artesanal e aquela cerveja trincando de gelada.
+        </p>
+        <div className="mt-9 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+          <a href="#cardapio" className={`${BTN_GOLD} glow-btn px-8 py-4 text-base`}>
+            <UtensilsCrossed className="h-5 w-5" />
+            Explorar Cardápio
+          </a>
+          <a
+            href={WHATSAPP_DEFAULT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${BTN_OUTLINE} px-8 py-4 text-base backdrop-blur-md`}
+          >
+            <WhatsAppIcon className="h-5 w-5" />
+            Pedir no WhatsApp / Delivery
+          </a>
+        </div>
+        <ul className="mt-10 flex flex-wrap justify-center gap-2.5">
+          {badges.map(({ icon: Icon, label, fill }) => (
+            <li
+              key={label}
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-4 py-2 text-sm text-zinc-200 backdrop-blur-md"
             >
-              <UtensilsCrossed className="h-5 w-5" />
-              Explorar Cardápio
-              <ArrowDown className="h-4 w-4 transition group-hover:translate-y-0.5" />
+              <Icon className="h-4 w-4 text-[#e6b95c]" fill={fill ? "currentColor" : "none"} />
+              {label}
+            </li>
+          ))}
+        </ul>
+        <HoursStrip status={status} />
+        <a
+          href="#sobre"
+          className="mt-10 hidden flex-col items-center gap-1 text-xs tracking-widest text-zinc-400 uppercase md:flex"
+          aria-label="Rolar para conhecer a casa"
+        >
+          Role para sentir o calor
+          <ArrowDown className="h-4 w-4 animate-bounce text-[#e6b95c]" />
+        </a>
+      </div>
+    </section>
+  );
+}
+
+function AboutSection() {
+  const facts = [
+    { value: BRAND.rating, label: "estrelas no Google" },
+    { value: BRAND.followers, label: "seguidores no Instagram" },
+    { value: "00h", label: "brasa acesa até tarde" },
+  ];
+
+  return (
+    <section id="sobre" className="relative scroll-mt-24 bg-[#f4efe6] py-20 text-[#1a1714] md:py-28">
+      <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2">
+        <div className="grid grid-cols-2 grid-rows-2 gap-3">
+          <FoodImage
+            src={PHOTOS.fachada}
+            alt="Fachada do Ponto da Costela na R. João Liberato, Arruda"
+            emoji="🏠"
+            className="row-span-2 h-full min-h-[320px] w-full rounded-2xl"
+          />
+          <FoodImage
+            src={MENU_BY_ID["costela-especial"].image}
+            alt="Costela na brasa"
+            emoji="🥩"
+            className="h-full min-h-[155px] w-full rounded-2xl"
+          />
+          <FoodImage
+            src={PHOTOS.mesas}
+            alt="Salão amplo do Ponto da Costela"
+            emoji="🪑"
+            className="h-full min-h-[155px] w-full rounded-2xl"
+          />
+        </div>
+        <div>
+          <SectionTitle
+            light
+            align="left"
+            script="Bem-vindo à nossa casa"
+            title="Onde a brasa encontra a tradição"
+          />
+          <div className="-mt-4 space-y-4 text-lg leading-relaxed text-[#5c5247]">
+            <p>
+              No coração do Arruda, a costela assa devagar sobre o carvão até desmanchar no osso. É churrasco feito
+              sem pressa, com tempero pernambucano e porção que dá gosto de dividir.
+            </p>
+            <p>
+              Salão amplo e arejado, telões para o jogo, chopp tirado na hora e aquele atendimento de casa cheia.
+              Aqui toda mesa vira resenha.
+            </p>
+          </div>
+          <dl className="mt-8 grid grid-cols-3 gap-4 border-t border-[#1a1714]/10 pt-6">
+            {facts.map((fact) => (
+              <div key={fact.label}>
+                <dt className="sr-only">{fact.label}</dt>
+                <dd className="font-display text-3xl text-[#a0712a] md:text-4xl">{fact.value}</dd>
+                <dd className="mt-1 text-xs text-[#5c5247] md:text-sm">{fact.label}</dd>
+              </div>
+            ))}
+          </dl>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <a href="#destaques" className={BTN_OUTLINE_DARK}>
+              <ArrowRight className="h-4 w-4" />
+              Destaques da Brasa
             </a>
             <a
-              href={WHATSAPP_DEFAULT_URL}
+              href={WHATSAPP_RESERVA_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-400/40 bg-emerald-500/10 px-7 py-4 text-base font-bold text-emerald-300 shadow-[0_0_30px_-8px_rgba(16,185,129,0.6)] backdrop-blur-md transition hover:bg-emerald-500/20 hover:shadow-[0_0_40px_-6px_rgba(16,185,129,0.8)] active:scale-[0.98]"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1a1714] px-5 py-2.5 font-display text-[15px] text-[#f3e3bf] transition hover:bg-black active:scale-[0.98]"
             >
-              <WhatsAppIcon className="h-5 w-5" />
-              Pedir no WhatsApp / Delivery
+              Reservar mesa
             </a>
           </div>
-          <ul className="mt-10 flex flex-wrap gap-3">
-            {badges.map(({ icon: Icon, label, accent, fill }) => (
-              <li
-                key={label}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm font-medium text-zinc-200 backdrop-blur-md"
-              >
-                <Icon className={`h-4 w-4 ${accent}`} fill={fill ? "currentColor" : "none"} />
-                {label}
-              </li>
-            ))}
-          </ul>
         </div>
       </div>
-      <a
-        href="#destaques"
-        className="absolute bottom-6 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-1 text-xs text-zinc-400 md:flex"
-        aria-label="Rolar para os destaques"
-      >
-        <span>Role para sentir o calor</span>
-        <ArrowDown className="h-4 w-4 animate-bounce" />
-      </a>
     </section>
   );
 }
 
 function Highlights({ onAdd }) {
+  const [featured, ...others] = HIGHLIGHTS;
+  const featuredItem = MENU_BY_ID[featured.itemId];
+
   return (
-    <section id="destaques" className="relative scroll-mt-24 py-20 md:py-28">
+    <section id="destaques" className="relative scroll-mt-24 bg-[#0f0f11] py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <SectionTitle
-          icon={Flame}
-          eyebrow="Destaques da Brasa"
-          title="Os campeões da casa"
-          subtitle="Os pratos que fizeram o Arruda inteiro sentir o cheiro de brasa. Pede um, volta por todos."
-        />
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {HIGHLIGHTS.map((highlight) => {
+        {/* Destaque principal no estilo "Our Menu" */}
+        <div className="grid items-center gap-12 lg:grid-cols-2">
+          <div className="order-2 lg:order-1">
+            <p className="font-script text-3xl text-[#e6b95c] md:text-4xl">Sinta o sabor</p>
+            <h2 className="mt-1 font-display text-5xl leading-tight font-medium text-[#f3e3bf] md:text-7xl">
+              Destaques da Brasa
+            </h2>
+            <p className="mt-6 max-w-lg text-lg leading-relaxed text-zinc-400">
+              A estrela da casa é a <strong className="font-semibold text-[#f3e3bf]">{featured.title}</strong>:{" "}
+              {featured.text.charAt(0).toLowerCase() + featured.text.slice(1)} Carvão de verdade, paciência e o tempero
+              que fez o Arruda inteiro sentir o cheiro.
+            </p>
+            <p className="mt-6 font-display text-3xl text-[#e6b95c]">
+              {money(featuredItem.price)}{" "}
+              <span className="text-base text-zinc-500">· {featuredItem.serves}</span>
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <button type="button" onClick={() => onAdd(featuredItem.id)} className={BTN_GOLD}>
+                <Plus className="h-4 w-4" />
+                Adicionar ao pedido
+              </button>
+              <a href="#cardapio" className={BTN_OUTLINE}>
+                <ArrowRight className="h-4 w-4" />
+                Ver Cardápio
+              </a>
+            </div>
+          </div>
+          <div className="relative order-1 mx-auto aspect-square w-full max-w-md lg:order-2">
+            <div className="absolute inset-0 rounded-full border border-[#e6b95c]/40" />
+            <div className="absolute inset-6 rounded-full border border-[#e6b95c]/15" />
+            <div className="absolute inset-[18%] rotate-6 overflow-hidden rounded-3xl shadow-2xl shadow-black/60 ring-4 ring-[#2a2118]">
+              <FoodImage
+                src={featuredItem.image}
+                alt={featured.title}
+                emoji={featuredItem.emoji}
+                className="h-full w-full scale-110"
+              />
+            </div>
+            <span className="absolute top-[8%] right-[4%] rounded-full bg-[#ea580c] px-3 py-1 text-xs font-semibold tracking-wide text-white uppercase shadow-lg shadow-orange-600/40">
+              {featured.tag}
+            </span>
+          </div>
+        </div>
+
+        {/* Demais destaques */}
+        <div className="mt-20 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {others.map((highlight) => {
             const item = MENU_BY_ID[highlight.itemId];
             const Icon = highlight.icon;
             return (
               <article
                 key={highlight.itemId}
-                className={`group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-md transition duration-300 hover:-translate-y-1 hover:border-orange-500/40 hover:shadow-2xl hover:shadow-orange-600/20 ${
-                  highlight.featured ? "md:col-span-2 lg:row-span-2 lg:col-span-1" : ""
-                }`}
+                className="group flex flex-col overflow-hidden rounded-3xl border border-[#e6b95c]/15 bg-[#16140f] transition duration-300 hover:-translate-y-1 hover:border-[#e6b95c]/40"
               >
-                <div className={`relative overflow-hidden ${highlight.featured ? "h-64 lg:h-[26rem]" : "h-52"}`}>
+                <div className="relative h-48 overflow-hidden">
                   <FoodImage
                     src={item.image}
                     alt={highlight.title}
                     emoji={item.emoji}
                     className="h-full w-full transition duration-700 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f11] via-[#0f0f11]/30 to-transparent" />
-                  <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-xs font-bold text-[#f59e0b] ring-1 ring-[#f59e0b]/40 backdrop-blur">
+                  <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-xs text-[#e6b95c] backdrop-blur">
                     <Icon className="h-3.5 w-3.5" />
                     {highlight.tag}
                   </span>
                 </div>
-                <div className="relative -mt-10 p-6">
-                  <h3 className={`font-black text-white ${highlight.featured ? "text-2xl md:text-3xl" : "text-xl"}`}>
-                    {highlight.title}
-                  </h3>
-                  <p className="mt-2 text-zinc-400">{highlight.text}</p>
+                <div className="flex flex-1 flex-col p-6">
+                  <h3 className="font-display text-xl leading-snug text-[#f3e3bf]">{highlight.title}</h3>
+                  <span className="mt-3 h-px w-10 bg-[#e6b95c]/50" />
+                  <p className="mt-3 flex-1 text-sm leading-relaxed text-zinc-400">{highlight.text}</p>
                   <div className="mt-5 flex items-center justify-between gap-3">
-                    <span className="text-sm text-zinc-500">
-                      a partir de{" "}
-                      <strong className="text-lg font-black text-[#f59e0b]">{money(item.price)}</strong>
-                    </span>
+                    <span className="font-display text-xl text-[#e6b95c]">{money(item.price)}</span>
                     <button
                       type="button"
                       onClick={() => onAdd(item.id)}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-bold text-white ring-1 ring-white/15 transition hover:bg-gradient-to-r hover:from-[#dc2626] hover:to-[#ea580c] active:scale-95"
+                      className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e6b95c]/60 text-[#e6b95c] transition hover:bg-[#e6b95c] hover:text-black active:scale-90"
+                      aria-label={`Adicionar ${item.name}`}
                     >
                       <Plus className="h-4 w-4" />
-                      Adicionar
                     </button>
                   </div>
                 </div>
@@ -937,7 +1149,7 @@ function Highlights({ onAdd }) {
 
 function MenuCard({ item, quantity, onAdd, onRemove }) {
   return (
-    <article className="group flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#18181b]/90 transition duration-300 hover:border-orange-500/40 hover:shadow-xl hover:shadow-orange-600/10">
+    <article className="group flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#18181b] transition duration-300 hover:border-[#e6b95c]/40 hover:shadow-xl hover:shadow-black/40">
       <div className="relative h-44 overflow-hidden">
         <FoodImage
           src={item.image}
@@ -947,50 +1159,46 @@ function MenuCard({ item, quantity, onAdd, onRemove }) {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#18181b] via-transparent to-transparent" />
         {item.popular && (
-          <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-[#f59e0b] px-2.5 py-1 text-[11px] font-black tracking-wide text-black uppercase shadow-lg shadow-amber-500/30">
+          <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-[#f59e0b] px-2.5 py-1 text-[11px] font-bold tracking-wide text-black uppercase shadow-lg shadow-amber-500/30">
             <Flame className="h-3 w-3" />
             Mais Pedido
           </span>
         )}
         {item.serves && (
-          <span className="absolute top-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-zinc-200 backdrop-blur">
+          <span className="absolute top-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-[11px] text-zinc-200 backdrop-blur">
             {item.serves}
           </span>
         )}
       </div>
       <div className="flex flex-1 flex-col p-5">
-        <h3 className="text-lg leading-snug font-bold text-white">{item.name}</h3>
+        <h3 className="font-display text-lg leading-snug text-[#f3e3bf]">{item.name}</h3>
         <p className="mt-2 flex-1 text-sm leading-relaxed text-zinc-400">{item.description}</p>
-        <div className="mt-5 flex items-center justify-between gap-3">
-          <span className="text-xl font-black text-[#f59e0b]">{money(item.price)}</span>
+        <div className="mt-5 flex items-center justify-between gap-3 border-t border-white/5 pt-4">
+          <span className="font-display text-xl text-[#e6b95c]">{money(item.price)}</span>
           {quantity > 0 ? (
-            <div className="flex items-center gap-1 rounded-xl bg-white/5 p-1 ring-1 ring-orange-500/40">
+            <div className="flex items-center gap-1 rounded-full border border-[#e6b95c]/50 p-1">
               <button
                 type="button"
                 onClick={() => onRemove(item.id)}
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-white transition hover:bg-white/10 active:scale-90"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-[#e6b95c] transition hover:bg-white/10 active:scale-90"
                 aria-label={`Remover um ${item.name}`}
               >
                 <Minus className="h-4 w-4" />
               </button>
-              <span className="w-6 text-center font-bold text-white" aria-live="polite">
+              <span className="w-6 text-center font-semibold text-white" aria-live="polite">
                 {quantity}
               </span>
               <button
                 type="button"
                 onClick={() => onAdd(item.id)}
-                className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-r from-[#dc2626] to-[#ea580c] text-white active:scale-90"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#e6b95c] text-black active:scale-90"
                 aria-label={`Adicionar mais um ${item.name}`}
               >
                 <Plus className="h-4 w-4" />
               </button>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => onAdd(item.id)}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#dc2626] to-[#ea580c] px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-red-600/25 transition hover:shadow-orange-500/40 active:scale-95"
-            >
+            <button type="button" onClick={() => onAdd(item.id)} className={`${BTN_OUTLINE} !px-4 !py-2 text-sm`}>
               <Plus className="h-4 w-4" />
               Adicionar
             </button>
@@ -1018,18 +1226,17 @@ function MenuSection({ cart, onAdd, onRemove }) {
   );
 
   return (
-    <section id="cardapio" className="relative scroll-mt-24 bg-[#0f0f11]/95 py-20 md:py-28">
+    <section id="cardapio" className="relative scroll-mt-24 bg-[#121113] py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionTitle
-          icon={UtensilsCrossed}
-          eyebrow="Cardápio Digital"
-          title="Escolha, adicione e peça no WhatsApp"
+          script="Escolha, adicione e peça"
+          title="Nosso Cardápio"
           subtitle="Monte seu pedido aqui e enviamos tudo prontinho para o nosso WhatsApp oficial. Simples assim."
         />
         <div
           role="tablist"
           aria-label="Categorias do cardápio"
-          className="no-scrollbar sticky top-[68px] z-30 -mx-4 mb-8 flex gap-2 overflow-x-auto bg-[#0f0f11]/85 px-4 py-3 backdrop-blur-md sm:mx-0 sm:flex-wrap sm:justify-center sm:rounded-2xl sm:px-3"
+          className="no-scrollbar sticky top-[72px] z-30 -mx-4 mb-10 flex gap-2 overflow-x-auto bg-[#121113]/90 px-4 py-3 backdrop-blur-md sm:mx-0 sm:flex-wrap sm:justify-center sm:rounded-full"
         >
           {CATEGORIES.map(({ id, label, icon: Icon }) => {
             const active = category === id;
@@ -1040,17 +1247,15 @@ function MenuSection({ cart, onAdd, onRemove }) {
                 role="tab"
                 aria-selected={active}
                 onClick={() => setCategory(id)}
-                className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition active:scale-95 ${
+                className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm transition active:scale-95 ${
                   active
-                    ? "bg-gradient-to-r from-[#dc2626] to-[#ea580c] text-white shadow-lg shadow-red-600/30"
-                    : "border border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white"
+                    ? "bg-[#e6b95c] font-semibold text-black"
+                    : "border border-[#e6b95c]/30 text-zinc-300 hover:border-[#e6b95c]/70 hover:text-[#e6b95c]"
                 }`}
               >
                 <Icon className="h-4 w-4" />
                 {label}
-                <span
-                  className={`rounded-full px-1.5 text-[11px] ${active ? "bg-black/25" : "bg-white/10 text-zinc-400"}`}
-                >
+                <span className={`rounded-full px-1.5 text-[11px] ${active ? "bg-black/15" : "bg-white/10 text-zinc-400"}`}>
                   {counts[id]}
                 </span>
               </button>
@@ -1059,18 +1264,11 @@ function MenuSection({ cart, onAdd, onRemove }) {
         </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {items.map((item) => (
-            <MenuCard
-              key={item.id}
-              item={item}
-              quantity={cart[item.id] || 0}
-              onAdd={onAdd}
-              onRemove={onRemove}
-            />
+            <MenuCard key={item.id} item={item} quantity={cart[item.id] || 0} onAdd={onAdd} onRemove={onRemove} />
           ))}
         </div>
-        <p className="mt-8 text-center text-xs text-zinc-500">
-          Preços e disponibilidade sujeitos a alteração. Confirme o valor final com nossa equipe no
-          WhatsApp.
+        <p className="mt-10 text-center text-xs text-zinc-500">
+          Preços e disponibilidade sujeitos a alteração. Confirme o valor final com nossa equipe no WhatsApp.
         </p>
       </div>
     </section>
@@ -1081,7 +1279,7 @@ function HoursSection({ status }) {
   const vibes = [
     {
       icon: Tv,
-      title: "Telão para os jogos",
+      title: "Telões para os jogos",
       text: "Sport, Náutico, Santa Cruz, Seleção e Brasileirão com som ligado e cerveja gelada. Aqui no Arruda, jogo é evento.",
     },
     {
@@ -1092,7 +1290,7 @@ function HoursSection({ status }) {
     {
       icon: Trophy,
       title: "Clima de resenha raiz",
-      text: "Ambiente rústico, cheiro de brasa no ar e atendimento de casa cheia — como todo bom churrasco deve ser.",
+      text: "Salão amplo e ventilado, cheiro de brasa no ar e atendimento de casa cheia.",
     },
     {
       icon: Cake,
@@ -1102,25 +1300,35 @@ function HoursSection({ status }) {
   ];
 
   return (
-    <section id="horarios" className="relative scroll-mt-24 bg-[#0f0f11] py-20 md:py-28">
+    <section id="horarios" className="relative isolate scroll-mt-24 overflow-hidden py-20 md:py-28">
+      <img
+        src={PHOTOS.teloes}
+        alt=""
+        aria-hidden="true"
+        loading="lazy"
+        className="absolute inset-0 -z-10 h-full w-full object-cover [filter:sepia(.4)_brightness(.35)]"
+        onError={(e) => {
+          e.currentTarget.style.display = "none";
+        }}
+      />
+      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[#0f0f11] via-[#0f0f11]/80 to-[#0f0f11]" />
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionTitle
-          icon={Clock}
-          eyebrow="Horários & Clima da Casa"
+          script="Horários & clima da casa"
           title="A brasa acende todo dia"
           subtitle="Do almoço de domingo ao último chopp da sexta, tem sempre uma mesa esperando você."
         />
         <div className="grid gap-6 lg:grid-cols-5">
-          <div className="overflow-hidden rounded-3xl border border-white/10 bg-[#18181b] lg:col-span-2">
-            <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-gradient-to-r from-[#dc2626]/20 to-transparent px-6 py-5">
+          <div className="overflow-hidden rounded-3xl border border-[#e6b95c]/25 bg-black/60 backdrop-blur-md lg:col-span-2">
+            <div className="flex items-center justify-between gap-3 border-b border-[#e6b95c]/15 px-6 py-5">
               <div>
-                <p className="text-xs font-semibold tracking-widest text-zinc-400 uppercase">Agora no Arruda</p>
-                <p className="mt-1 text-lg font-black text-white">
+                <p className="font-script text-2xl text-[#e6b95c]">Agora no Arruda</p>
+                <p className="font-display text-xl text-[#f3e3bf]">
                   {status.isOpen ? "Brasa acesa!" : "Brasa descansando"}
                 </p>
               </div>
               <span
-                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold ${
+                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${
                   status.isOpen
                     ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40"
                     : "bg-zinc-700/40 text-zinc-300 ring-1 ring-zinc-600"
@@ -1137,25 +1345,21 @@ function HoursSection({ status }) {
                 return (
                   <li
                     key={row.day}
-                    className={`flex items-center justify-between gap-3 px-6 py-3.5 ${
-                      isToday ? "bg-orange-500/10" : ""
-                    }`}
+                    className={`flex items-center justify-between gap-3 px-6 py-3.5 ${isToday ? "bg-[#e6b95c]/10" : ""}`}
                   >
                     <span className="flex items-center gap-2">
-                      <span className={`font-semibold ${isToday ? "text-white" : "text-zinc-300"}`}>{row.day}</span>
+                      <span className={`font-display ${isToday ? "text-[#e6b95c]" : "text-[#f3e3bf]"}`}>{row.day}</span>
                       {isToday && (
-                        <span className="rounded-full bg-[#ea580c] px-2 py-0.5 text-[10px] font-black text-white uppercase">
+                        <span className="rounded-full bg-[#ea580c] px-2 py-0.5 text-[10px] font-bold text-white uppercase">
                           Hoje
                         </span>
                       )}
-                      {row.note && !isToday && (
-                        <span className="hidden text-xs text-zinc-500 sm:inline">· {row.note}</span>
-                      )}
+                      {row.note && !isToday && <span className="hidden text-xs text-zinc-500 sm:inline">· {row.note}</span>}
                     </span>
-                    <span className="font-mono text-sm tabular-nums">
+                    <span className="text-sm tabular-nums">
                       <span className="text-zinc-300">{formatHour(row.open)}</span>
                       <span className="text-zinc-600"> – </span>
-                      <span className={`font-bold ${lateNight ? "text-[#f59e0b]" : "text-orange-400"}`}>
+                      <span className={lateNight ? "font-semibold text-[#f59e0b]" : "text-zinc-300"}>
                         {formatHour(row.close)}
                       </span>
                     </span>
@@ -1164,34 +1368,34 @@ function HoursSection({ status }) {
               })}
             </ul>
             <p className="border-t border-white/10 px-6 py-4 text-xs text-zinc-500">
-              Horário de Recife. Feriados e dias de jogo podem ter horário especial — confira no Instagram.
+              Horário de Recife. Feriados e dias de jogo podem ter horário especial. Confira no Instagram.
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:col-span-3">
             {vibes.map(({ icon: Icon, title, text }) => (
               <div
                 key={title}
-                className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#18181b] to-[#0f0f11] p-6 transition hover:border-orange-500/30"
+                className="rounded-3xl border border-white/10 bg-black/50 p-6 backdrop-blur-md transition hover:border-[#e6b95c]/40"
               >
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#dc2626]/20 to-[#ea580c]/20 text-orange-400 ring-1 ring-orange-500/30">
-                  <Icon className="h-6 w-6" />
+                <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[#e6b95c]/50 text-[#e6b95c]">
+                  <Icon className="h-5 w-5" />
                 </span>
-                <h3 className="mt-4 text-lg font-bold text-white">{title}</h3>
+                <h3 className="mt-4 font-display text-xl text-[#f3e3bf]">{title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-400">{text}</p>
               </div>
             ))}
             <a
-              href={WHATSAPP_DEFAULT_URL}
+              href={WHATSAPP_RESERVA_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="glow-btn flex items-center justify-between gap-4 rounded-3xl bg-gradient-to-r from-[#dc2626] to-[#ea580c] p-6 text-white active:scale-[0.99] sm:col-span-2"
+              className="flex items-center justify-between gap-4 rounded-3xl border border-[#e6b95c]/40 bg-gradient-to-r from-[#e6b95c]/15 to-transparent p-6 transition hover:border-[#e6b95c] active:scale-[0.99] sm:col-span-2"
             >
               <span>
-                <span className="block text-lg font-black">Vai comemorar? Reserve sua mesa</span>
-                <span className="block text-sm text-orange-100">Respondemos rapidinho no WhatsApp {BRAND.whatsappDisplay}</span>
+                <span className="block font-display text-2xl text-[#f3e3bf]">Vai comemorar? Reserve sua mesa</span>
+                <span className="mt-1 block text-sm text-zinc-400">Respondemos rapidinho no WhatsApp {BRAND.whatsappDisplay}</span>
               </span>
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-black/20">
-                <WhatsAppIcon className="h-6 w-6" />
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#e6b95c] text-black">
+                <WhatsAppIcon className="h-5 w-5" />
               </span>
             </a>
           </div>
@@ -1212,7 +1416,7 @@ function LocationSection() {
     {
       icon: CircleParking,
       title: "Estacionamento",
-      text: "Vagas na rua em frente e nas transversais. Em dia de jogo, chegue mais cedo — a rua enche!",
+      text: "Vagas na rua em frente e nas transversais. Em dia de jogo, chegue mais cedo: a rua enche!",
     },
     {
       icon: Bus,
@@ -1227,19 +1431,46 @@ function LocationSection() {
   ];
 
   return (
-    <section id="localizacao" className="relative scroll-mt-24 bg-[#0f0f11] py-20 md:py-28">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <SectionTitle
-          icon={MapPin}
-          eyebrow="Localização"
-          title="Vem pro Arruda!"
-          subtitle="Siga o cheiro da brasa. A gente está te esperando com a mesa posta."
-        />
-        <div className="grid gap-6 lg:grid-cols-5">
-          <div className="relative min-h-[320px] overflow-hidden rounded-3xl border border-white/10 bg-[#18181b] lg:col-span-3 lg:min-h-[460px]">
+    <section id="localizacao" className="relative scroll-mt-24">
+      {/* Janela transparente: o vídeo fixo de fundo aparece aqui */}
+      <div className="relative flex min-h-[70svh] flex-col items-center justify-center px-4 py-24 text-center">
+        <p className="font-script text-3xl text-[#e6b95c] md:text-4xl">Vem pro Arruda</p>
+        <h2 className="mt-2 max-w-3xl font-display text-4xl leading-tight text-[#f3e3bf] md:text-6xl">
+          Esperamos você para uma noite de brasa
+        </h2>
+        <div className="mt-10 flex flex-col items-center gap-6 text-left sm:flex-row sm:gap-10">
+          <a href={GOOGLE_MAPS_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#e6b95c]/60 text-[#e6b95c]">
+              <MapPin className="h-5 w-5" />
+            </span>
+            <span className="font-display text-lg leading-tight text-[#f3e3bf]">
+              {BRAND.street}
+              <span className="block text-sm text-zinc-400">
+                {BRAND.district} · {BRAND.cep}
+              </span>
+            </span>
+          </a>
+          <a href={WHATSAPP_DEFAULT_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#e6b95c]/60 text-[#e6b95c]">
+              <Phone className="h-5 w-5" />
+            </span>
+            <span className="font-display text-lg leading-tight text-[#f3e3bf]">
+              Fale com a gente
+              <span className="block text-sm text-zinc-400">{BRAND.whatsappDisplay}</span>
+            </span>
+          </a>
+        </div>
+        <a href={WHATSAPP_RESERVA_URL} target="_blank" rel="noopener noreferrer" className={`${BTN_GOLD} mt-10`}>
+          Reservar sua mesa
+        </a>
+      </div>
+
+      <div className="bg-[#0f0f11] pb-20 md:pb-28">
+        <div className="mx-auto grid max-w-7xl gap-6 px-4 pt-4 sm:px-6 lg:grid-cols-5">
+          <div className="relative min-h-[320px] overflow-hidden rounded-3xl border border-[#e6b95c]/20 bg-[#18181b] lg:col-span-3 lg:min-h-[460px]">
             {!mapLoaded && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-zinc-500">
-                <MapPin className="h-10 w-10 animate-bounce text-orange-500" />
+                <MapPin className="h-10 w-10 animate-bounce text-[#e6b95c]" />
                 <span className="text-sm">Carregando mapa…</span>
               </div>
             )}
@@ -1249,27 +1480,16 @@ function LocationSection() {
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
               onLoad={() => setMapLoaded(true)}
-              className="absolute inset-0 h-full w-full border-0 opacity-90 grayscale-[35%] invert-[8%]"
+              className="absolute inset-0 h-full w-full border-0 [filter:grayscale(.4)_sepia(.2)]"
             />
           </div>
           <div className="flex flex-col gap-4 lg:col-span-2">
-            <div className="rounded-3xl border border-orange-500/30 bg-gradient-to-br from-[#dc2626]/15 via-[#18181b] to-[#18181b] p-6">
-              <div className="flex items-start gap-4">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#dc2626] to-[#ea580c] text-white">
-                  <MapPin className="h-6 w-6" />
-                </span>
-                <div>
-                  <p className="text-xl leading-snug font-black text-white">{BRAND.address}</p>
-                  <p className="mt-1 text-sm text-zinc-400">CEP {BRAND.cep}</p>
-                </div>
-              </div>
+            <div className="rounded-3xl border border-[#e6b95c]/30 bg-[#16140f] p-6">
+              <p className="font-script text-2xl text-[#e6b95c]">Como chegar</p>
+              <p className="mt-1 font-display text-2xl leading-snug text-[#f3e3bf]">{BRAND.address}</p>
+              <p className="mt-1 text-sm text-zinc-400">CEP {BRAND.cep}</p>
               <div className="mt-5 grid grid-cols-2 gap-3">
-                <a
-                  href={WAZE_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500/15 px-4 py-3.5 text-sm font-bold text-sky-300 ring-1 ring-sky-400/40 transition hover:bg-sky-500/25 active:scale-95"
-                >
+                <a href={WAZE_URL} target="_blank" rel="noopener noreferrer" className={`${BTN_OUTLINE} !px-3 text-sm`}>
                   <Navigation className="h-4 w-4" />
                   Abrir no Waze
                 </a>
@@ -1277,7 +1497,7 @@ function LocationSection() {
                   href={GOOGLE_MAPS_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 px-4 py-3.5 text-sm font-bold text-white ring-1 ring-white/20 transition hover:bg-white/15 active:scale-95"
+                  className={`${BTN_GOLD} !px-3 !py-2.5 text-sm`}
                 >
                   <MapPin className="h-4 w-4" />
                   Google Maps
@@ -1287,9 +1507,9 @@ function LocationSection() {
             <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
               {tips.map(({ icon: Icon, title, text }) => (
                 <li key={title} className="flex gap-3 rounded-2xl border border-white/10 bg-[#18181b] p-4">
-                  <Icon className="mt-0.5 h-5 w-5 shrink-0 text-[#f59e0b]" />
+                  <Icon className="mt-0.5 h-5 w-5 shrink-0 text-[#e6b95c]" />
                   <div>
-                    <p className="font-bold text-white">{title}</p>
+                    <p className="font-display text-[#f3e3bf]">{title}</p>
                     <p className="mt-1 text-sm text-zinc-400">{text}</p>
                   </div>
                 </li>
@@ -1304,75 +1524,41 @@ function LocationSection() {
 
 function Footer() {
   return (
-    <footer className="relative border-t border-white/10 bg-black">
+    <footer className="relative border-t border-[#e6b95c]/15 bg-black">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-        <div className="grid gap-10 md:grid-cols-3">
-          <div>
-            <Logo />
-            <p className="mt-4 max-w-xs text-sm text-zinc-400">{BRAND.slogan}.</p>
-            <div className="mt-4 flex items-center gap-1 text-sm text-zinc-300">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <Star key={i} className="h-4 w-4 text-[#f59e0b]" fill="currentColor" />
-              ))}
-              <span className="ml-1 font-semibold">{BRAND.rating}</span>
-              <span className="text-zinc-500">no Google</span>
-            </div>
+        <div className="flex flex-col items-center text-center">
+          <Monogram className="h-16 w-16" />
+          <p className="mt-4 font-display text-2xl text-[#f3e3bf]">Ponto da Costela</p>
+          <p className="mt-1 font-script text-2xl text-[#e6b95c]">{BRAND.slogan}</p>
+          <div className="mt-4 flex items-center gap-1 text-sm text-zinc-300">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <Star key={i} className="h-4 w-4 text-[#e6b95c]" fill="currentColor" />
+            ))}
+            <span className="ml-1 font-semibold">{BRAND.rating}</span>
+            <span className="text-zinc-500">no Google</span>
           </div>
-          <div>
-            <p className="text-sm font-bold tracking-widest text-zinc-500 uppercase">Fale com a gente</p>
-            <ul className="mt-4 space-y-3 text-sm">
-              <li>
-                <a
-                  href={WHATSAPP_DEFAULT_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-zinc-300 transition hover:text-emerald-300"
-                >
-                  <WhatsAppIcon className="h-4 w-4" />
-                  {BRAND.whatsappDisplay}
-                </a>
-              </li>
-              <li>
-                <a
-                  href={INSTAGRAM_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-zinc-300 transition hover:text-pink-300"
-                >
-                  <InstagramIcon className="h-4 w-4" />@{BRAND.instagram}
-                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-zinc-400">
-                    {BRAND.followers} seguidores
-                  </span>
-                </a>
-              </li>
-              <li className="inline-flex items-start gap-2 text-zinc-400">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-                {BRAND.address} · CEP {BRAND.cep}
-              </li>
-            </ul>
-          </div>
-          <div className="rounded-3xl border border-orange-500/20 bg-gradient-to-br from-[#dc2626]/15 to-transparent p-6">
-            <Flame className="flame-flicker h-8 w-8 text-[#ea580c]" />
-            <p className="mt-3 text-xl font-black text-white">A brasa tá acesa. Bora pro Arruda?</p>
-            <p className="mt-2 text-sm text-zinc-400">
-              Chama a turma, separa a sede e vem viver o churrasco raiz mais querido do Recife.
-            </p>
-            <a
-              href={INSTAGRAM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-bold text-white ring-1 ring-white/15 transition hover:bg-white/15 active:scale-95"
-            >
-              <InstagramIcon className="h-4 w-4" />
-              Seguir no Instagram
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className={BTN_OUTLINE}>
+              <InstagramIcon className="h-4 w-4" />@{BRAND.instagram}
+              <span className="text-xs text-zinc-400">· {BRAND.followers}</span>
+            </a>
+            <a href={WHATSAPP_DEFAULT_URL} target="_blank" rel="noopener noreferrer" className={BTN_OUTLINE}>
+              <WhatsAppIcon className="h-4 w-4" />
+              {BRAND.whatsappDisplay}
             </a>
           </div>
+          <p className="mt-8 max-w-md text-sm text-zinc-400">
+            A brasa tá acesa. Chama a turma, separa a sede e vem viver o churrasco raiz mais querido do Recife, na{" "}
+            {BRAND.address}.
+          </p>
         </div>
         <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-zinc-500 sm:flex-row">
           <p>© {new Date().getFullYear()} Ponto da Costela - Recife. Todos os direitos reservados.</p>
-          <p className="inline-flex items-center gap-1">
-            Feito com <Heart className="h-3 w-3 text-[#dc2626]" fill="currentColor" /> e muita brasa no Arruda.
-          </p>
+          <nav className="flex gap-4">
+            <a href="#cardapio" className="hover:text-[#e6b95c]">Cardápio</a>
+            <a href="#horarios" className="hover:text-[#e6b95c]">Horários</a>
+            <a href="#localizacao" className="hover:text-[#e6b95c]">Localização</a>
+          </nav>
         </div>
       </div>
     </footer>
@@ -1388,6 +1574,10 @@ const ORDER_TYPES = [
   { id: "retirada", label: "Retirada", icon: Store },
   { id: "mesa", label: "Na mesa", icon: Armchair },
 ];
+
+const INPUT_CLASS =
+  "w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-base text-white placeholder:text-zinc-600 focus:border-[#e6b95c]/60 focus:ring-2 focus:ring-[#e6b95c]/20 focus:outline-none";
+const LABEL_CLASS = "mb-1.5 block text-xs font-semibold tracking-widest text-zinc-400 uppercase";
 
 function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear }) {
   const [orderType, setOrderType] = useState("delivery");
@@ -1453,17 +1643,17 @@ function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear })
         aria-modal="true"
         aria-label="Seu pedido"
         inert={!open}
-        className={`absolute top-0 right-0 flex h-full w-full max-w-md flex-col border-l border-white/10 bg-[#18181b] shadow-2xl transition-transform duration-300 ease-out ${
+        className={`absolute top-0 right-0 flex h-full w-full max-w-md flex-col border-l border-[#e6b95c]/20 bg-[#16140f] shadow-2xl transition-transform duration-300 ease-out ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#dc2626] to-[#ea580c] text-white">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#e6b95c]/60 text-[#e6b95c]">
               <ShoppingBag className="h-5 w-5" />
             </span>
             <div>
-              <p className="text-lg font-black text-white">Seu pedido</p>
+              <p className="font-display text-xl text-[#f3e3bf]">Seu pedido</p>
               <p className="text-xs text-zinc-400">
                 {itemCount} {itemCount === 1 ? "item" : "itens"}
               </p>
@@ -1473,7 +1663,7 @@ function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear })
             ref={closeButtonRef}
             type="button"
             onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-zinc-300 transition hover:bg-white/10 active:scale-95"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-zinc-300 transition hover:bg-white/10 active:scale-95"
             aria-label="Fechar pedido"
           >
             <X className="h-5 w-5" />
@@ -1482,18 +1672,12 @@ function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear })
 
         {lines.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center">
-            <span className="flex h-20 w-20 items-center justify-center rounded-full bg-orange-500/10 text-orange-400">
-              <Flame className="flame-flicker h-10 w-10" />
-            </span>
-            <p className="text-lg font-bold text-white">A grelha ainda está vazia</p>
+            <Monogram className="h-20 w-20" />
+            <p className="font-display text-2xl text-[#f3e3bf]">A grelha ainda está vazia</p>
             <p className="text-sm text-zinc-400">
               Adicione a costela, uns petiscos e aquele chopp gelado. A gente cuida do resto.
             </p>
-            <a
-              href="#cardapio"
-              onClick={onClose}
-              className="mt-2 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#dc2626] to-[#ea580c] px-5 py-3 font-bold text-white active:scale-95"
-            >
+            <a href="#cardapio" onClick={onClose} className={`${BTN_GOLD} mt-2`}>
               <UtensilsCrossed className="h-4 w-4" />
               Ver Cardápio
             </a>
@@ -1503,7 +1687,7 @@ function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear })
             <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4">
               <ul className="space-y-3">
                 {lines.map((line) => (
-                  <li key={line.id} className="flex gap-3 rounded-2xl border border-white/10 bg-black/20 p-3">
+                  <li key={line.id} className="flex gap-3 rounded-2xl border border-white/10 bg-black/25 p-3">
                     <FoodImage
                       src={line.image}
                       alt={line.name}
@@ -1512,7 +1696,7 @@ function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear })
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm leading-snug font-bold text-white">{line.name}</p>
+                        <p className="font-display leading-snug text-[#f3e3bf]">{line.name}</p>
                         <button
                           type="button"
                           onClick={() => onDelete(line.id)}
@@ -1523,26 +1707,26 @@ function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear })
                         </button>
                       </div>
                       <div className="mt-2 flex items-center justify-between">
-                        <div className="flex items-center gap-1 rounded-lg bg-white/5 p-0.5 ring-1 ring-white/10">
+                        <div className="flex items-center gap-1 rounded-full border border-[#e6b95c]/40 p-0.5">
                           <button
                             type="button"
                             onClick={() => onRemove(line.id)}
-                            className="flex h-8 w-8 items-center justify-center rounded-md text-white active:scale-90"
+                            className="flex h-8 w-8 items-center justify-center rounded-full text-[#e6b95c] active:scale-90"
                             aria-label={`Diminuir ${line.name}`}
                           >
                             <Minus className="h-3.5 w-3.5" />
                           </button>
-                          <span className="w-6 text-center text-sm font-bold text-white">{line.qty}</span>
+                          <span className="w-6 text-center text-sm font-semibold text-white">{line.qty}</span>
                           <button
                             type="button"
                             onClick={() => onAdd(line.id)}
-                            className="flex h-8 w-8 items-center justify-center rounded-md text-white active:scale-90"
+                            className="flex h-8 w-8 items-center justify-center rounded-full text-[#e6b95c] active:scale-90"
                             aria-label={`Aumentar ${line.name}`}
                           >
                             <Plus className="h-3.5 w-3.5" />
                           </button>
                         </div>
-                        <span className="font-black text-[#f59e0b]">{money(line.subtotal)}</span>
+                        <span className="font-display text-lg text-[#e6b95c]">{money(line.subtotal)}</span>
                       </div>
                     </div>
                   </li>
@@ -1559,9 +1743,7 @@ function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear })
 
               <div className="mt-6 space-y-4">
                 <fieldset>
-                  <legend className="mb-2 text-xs font-bold tracking-widest text-zinc-400 uppercase">
-                    Como você quer?
-                  </legend>
+                  <legend className={LABEL_CLASS}>Como você quer?</legend>
                   <div className="grid grid-cols-3 gap-2">
                     {ORDER_TYPES.map(({ id, label, icon: Icon }) => (
                       <button
@@ -1569,9 +1751,9 @@ function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear })
                         type="button"
                         onClick={() => setOrderType(id)}
                         aria-pressed={orderType === id}
-                        className={`flex flex-col items-center gap-1 rounded-xl px-2 py-3 text-xs font-bold transition active:scale-95 ${
+                        className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-3 text-xs font-semibold transition active:scale-95 ${
                           orderType === id
-                            ? "bg-orange-500/15 text-orange-300 ring-1 ring-orange-500/60"
+                            ? "bg-[#e6b95c]/15 text-[#e6b95c] ring-1 ring-[#e6b95c]/70"
                             : "bg-white/5 text-zinc-400 ring-1 ring-white/10"
                         }`}
                       >
@@ -1582,43 +1764,37 @@ function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear })
                   </div>
                 </fieldset>
                 <label className="block">
-                  <span className="mb-1.5 block text-xs font-bold tracking-widest text-zinc-400 uppercase">
-                    Seu nome
-                  </span>
+                  <span className={LABEL_CLASS}>Seu nome</span>
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Como te chamamos?"
                     autoComplete="name"
-                    className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-base text-white placeholder:text-zinc-600 focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                    className={INPUT_CLASS}
                   />
                 </label>
                 {orderType === "delivery" && (
                   <label className="block">
-                    <span className="mb-1.5 block text-xs font-bold tracking-widest text-zinc-400 uppercase">
-                      Endereço de entrega
-                    </span>
+                    <span className={LABEL_CLASS}>Endereço de entrega</span>
                     <input
                       type="text"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       placeholder="Rua, número, bairro e referência"
                       autoComplete="street-address"
-                      className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-base text-white placeholder:text-zinc-600 focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                      className={INPUT_CLASS}
                     />
                   </label>
                 )}
                 <label className="block">
-                  <span className="mb-1.5 block text-xs font-bold tracking-widest text-zinc-400 uppercase">
-                    Observações
-                  </span>
+                  <span className={LABEL_CLASS}>Observações</span>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     rows={2}
                     placeholder="Ponto da carne, troco, sem cebola…"
-                    className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-base text-white placeholder:text-zinc-600 focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                    className={`${INPUT_CLASS} resize-none`}
                   />
                 </label>
               </div>
@@ -1630,11 +1806,11 @@ function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear })
                 <span>{money(total)}</span>
               </div>
               <div className="mb-4 flex items-center justify-between">
-                <span className="font-bold text-white">Total estimado</span>
-                <span className="text-2xl font-black text-[#f59e0b]">{money(total)}</span>
+                <span className="font-display text-lg text-[#f3e3bf]">Total estimado</span>
+                <span className="font-display text-3xl text-[#e6b95c]">{money(total)}</span>
               </div>
               {needsAddress && (
-                <p className="mb-3 flex items-center gap-1.5 text-xs text-amber-300/80">
+                <p className="mb-3 flex items-center gap-1.5 text-xs text-[#e6b95c]/80">
                   <Sparkles className="h-3.5 w-3.5" />
                   Dica: informe o endereço para agilizar a entrega.
                 </p>
@@ -1643,7 +1819,7 @@ function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear })
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-5 py-4 text-base font-black text-black shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400 active:scale-[0.98]"
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-500 px-5 py-4 text-base font-bold text-black shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400 active:scale-[0.98]"
               >
                 <WhatsAppIcon className="h-5 w-5" />
                 Enviar pedido no WhatsApp
@@ -1665,12 +1841,12 @@ function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear })
 
 function MediaControls({ playing, onTogglePlay, focusMode, onToggleFocus, videoFailed }) {
   return (
-    <div className="fixed bottom-4 left-4 z-40 flex items-center gap-1 rounded-2xl border border-white/10 bg-black/60 p-1 backdrop-blur-md pb-[max(0.25rem,env(safe-area-inset-bottom))] sm:pb-1">
+    <div className="fixed bottom-4 left-4 z-40 mb-[env(safe-area-inset-bottom)] flex items-center gap-1 rounded-full border border-[#e6b95c]/25 bg-black/60 p-1 backdrop-blur-md">
       {!videoFailed && (
         <button
           type="button"
           onClick={onTogglePlay}
-          className="flex h-10 w-10 items-center justify-center rounded-xl text-zinc-300 transition hover:bg-white/10 hover:text-white active:scale-95"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-[#e6b95c] transition hover:bg-white/10 active:scale-95"
           aria-label={playing ? "Pausar vídeo de fundo" : "Reproduzir vídeo de fundo"}
           title={playing ? "Pausar vídeo de fundo" : "Reproduzir vídeo de fundo"}
         >
@@ -1681,8 +1857,8 @@ function MediaControls({ playing, onTogglePlay, focusMode, onToggleFocus, videoF
         type="button"
         onClick={onToggleFocus}
         aria-pressed={focusMode}
-        className={`flex h-10 items-center gap-2 rounded-xl px-3 text-xs font-semibold transition active:scale-95 ${
-          focusMode ? "bg-orange-500/20 text-orange-300" : "text-zinc-300 hover:bg-white/10 hover:text-white"
+        className={`flex h-10 items-center gap-2 rounded-full px-3 text-xs font-semibold transition active:scale-95 ${
+          focusMode ? "bg-[#e6b95c]/20 text-[#e6b95c]" : "text-zinc-300 hover:bg-white/10 hover:text-white"
         }`}
         title="Reduz animações e pausa o fundo para focar no cardápio"
       >
@@ -1701,7 +1877,7 @@ function FloatingCartButton({ count, total, onClick }) {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Falar no WhatsApp"
-        className="fixed right-4 bottom-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-black shadow-xl shadow-emerald-500/40 transition hover:scale-105 active:scale-95 mb-[env(safe-area-inset-bottom)]"
+        className="fixed right-4 bottom-4 z-40 mb-[env(safe-area-inset-bottom)] flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-black shadow-xl shadow-emerald-500/40 transition hover:scale-105 active:scale-95"
       >
         <WhatsAppIcon className="h-7 w-7" />
       </a>
@@ -1711,18 +1887,18 @@ function FloatingCartButton({ count, total, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="glow-btn fixed right-4 bottom-4 z-40 flex items-center gap-3 rounded-2xl bg-gradient-to-r from-[#dc2626] to-[#ea580c] py-3 pr-5 pl-3 text-white transition active:scale-95 mb-[env(safe-area-inset-bottom)]"
+      className="glow-btn fixed right-4 bottom-4 z-40 mb-[env(safe-area-inset-bottom)] flex items-center gap-3 rounded-full bg-[#e6b95c] py-2.5 pr-5 pl-2.5 text-[#141210] transition active:scale-95"
       aria-label={`Ver pedido: ${count} itens, ${money(total)}`}
     >
-      <span className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-black/25">
+      <span className="relative flex h-10 w-10 items-center justify-center rounded-full bg-black/15">
         <ShoppingBag className="h-5 w-5" />
-        <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#f59e0b] px-1 text-[11px] font-black text-black">
+        <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ea580c] px-1 text-[11px] font-bold text-white">
           {count}
         </span>
       </span>
       <span className="text-left leading-tight">
-        <span className="block text-[11px] font-semibold text-orange-100">Ver pedido</span>
-        <span className="block font-black">{money(total)}</span>
+        <span className="block text-[11px] font-semibold opacity-70">Ver pedido</span>
+        <span className="block font-display text-lg font-semibold">{money(total)}</span>
       </span>
     </button>
   );
@@ -1732,13 +1908,13 @@ function Toast({ message }) {
   return (
     <div
       aria-live="polite"
-      className={`pointer-events-none fixed top-20 left-1/2 z-[70] -translate-x-1/2 transition-all duration-300 ${
+      className={`pointer-events-none fixed top-24 left-1/2 z-[70] -translate-x-1/2 transition-all duration-300 ${
         message ? "translate-y-0 opacity-100" : "-translate-y-4 opacity-0"
       }`}
     >
       {message && (
-        <div className="flex items-center gap-2 rounded-full border border-emerald-400/30 bg-black/85 px-4 py-2.5 text-sm font-semibold text-white shadow-xl backdrop-blur-md">
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-black">
+        <div className="flex items-center gap-2 rounded-full border border-[#e6b95c]/40 bg-black/85 px-4 py-2.5 text-sm text-[#f3e3bf] shadow-xl backdrop-blur-md">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#e6b95c] text-black">
             <Check className="h-3.5 w-3.5" />
           </span>
           {message}
@@ -1753,6 +1929,10 @@ function Toast({ message }) {
    ============================================================ */
 
 const GLOBAL_STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..800;1,400..800&family=Great+Vibes&family=Raleway:wght@300..700&display=swap');
+  .font-display { font-family: 'Playfair Display', Georgia, 'Times New Roman', serif; }
+  .font-script { font-family: 'Great Vibes', 'Brush Script MT', cursive; font-weight: 400; line-height: 1.2; }
+  .font-body { font-family: 'Raleway', system-ui, -apple-system, 'Segoe UI', sans-serif; }
   @keyframes flame-flicker {
     0%, 100% { transform: scale(1) rotate(-2deg); opacity: 1; }
     25% { transform: scale(1.08, 0.96) rotate(2deg); opacity: .9; }
@@ -1760,12 +1940,11 @@ const GLOBAL_STYLES = `
     75% { transform: scale(1.04) rotate(1deg); opacity: .92; }
   }
   .flame-flicker { animation: flame-flicker 1.6s ease-in-out infinite; transform-origin: 50% 90%; }
-  @keyframes ember-glow {
-    0%, 100% { box-shadow: 0 0 22px -4px rgba(234, 88, 12, .65), 0 0 0 0 rgba(220, 38, 38, .35); }
-    50% { box-shadow: 0 0 38px -2px rgba(245, 158, 11, .75), 0 0 0 6px rgba(220, 38, 38, 0); }
+  @keyframes gold-glow {
+    0%, 100% { box-shadow: 0 0 22px -6px rgba(230, 185, 92, .55); }
+    50% { box-shadow: 0 0 38px -4px rgba(234, 88, 12, .55); }
   }
-  .glow-btn { animation: ember-glow 2.8s ease-in-out infinite; }
-  .glow-btn:hover { filter: brightness(1.08); }
+  .glow-btn { animation: gold-glow 3s ease-in-out infinite; }
   .no-scrollbar { scrollbar-width: none; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after {
@@ -1869,7 +2048,7 @@ export default function App() {
   const closeCart = useMemo(() => () => setCartOpen(false), []);
 
   return (
-    <div className="relative isolate min-h-screen overflow-x-clip bg-transparent font-sans text-zinc-100 antialiased selection:bg-orange-500/40">
+    <div className="font-body relative isolate min-h-screen overflow-x-clip bg-transparent text-zinc-100 antialiased selection:bg-[#e6b95c]/40">
       <style>{GLOBAL_STYLES}</style>
       <BackgroundVideo
         videoRef={videoRef}
@@ -1883,7 +2062,8 @@ export default function App() {
       <Navbar cartCount={cartCount} onOpenCart={() => setCartOpen(true)} />
 
       <main>
-        <Hero />
+        <Hero status={status} />
+        <AboutSection />
         <Highlights onAdd={addItem} />
         <MenuSection cart={cart} onAdd={addItem} onRemove={removeItem} />
         <HoursSection status={status} />
