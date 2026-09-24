@@ -35,7 +35,7 @@ Inspirado em sites de restaurante elegantes: títulos em Playfair Display, detal
 - `variants`: tamanhos com preço próprio (500g/1kg, dose/litro, copo/jarra, lata/1 litro).
 - `options`: escolhas obrigatórias sem custo (sabor do suco e do refrigerante, feijão, arroz, purê ou batata, ponto da carne). O cliente escolhe numa janela, e as escolhas vão junto na mensagem do WhatsApp.
 
-Ainda confira os horários em `HOURS`. As fotos dos pratos vêm do Unsplash (são ilustrativas). Se alguma não carregar, o card mostra um emoji.
+Ainda confira os horários em `HOURS`. Os pratos ainda não têm foto: o card mostra uma arte padrão da casa. Para usar fotos reais, salve em `public/images/pratos/` e mapeie em `DISH_PHOTOS` pelo id do item (ex.: `"pf-picanha": "images/pratos/picanha.jpg"`).
 
 ## Publicação (GitHub Pages)
 
