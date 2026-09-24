@@ -715,23 +715,40 @@ function SectionTitle({ script, title, subtitle, light = false, align = "center"
   );
 }
 
-function Monogram({ className = "h-12 w-12" }) {
-  return (
-    <span
-      className={`relative flex shrink-0 items-center justify-center rounded-full border-2 border-[#e6b95c] text-[#e6b95c] ${className}`}
-    >
-      <span className="font-display text-lg leading-none font-semibold italic">
-        P<span className="text-[0.7em] not-italic">&amp;</span>C
+const LOGO_SRC = "brand/logo-ponto-da-costela.png";
+
+/* Logo oficial (fundo transparente). Se o arquivo não carregar, mostra um selo "P&C". */
+function BrandLogo({ className = "h-12 w-12" }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <span
+        className={`relative flex shrink-0 items-center justify-center rounded-full border-2 border-[#e6b95c] text-[#e6b95c] ${className}`}
+      >
+        <span className="font-display text-lg leading-none font-semibold italic">
+          P<span className="text-[0.7em] not-italic">&amp;</span>C
+        </span>
+        <Flame className="flame-flicker absolute -top-2 h-3.5 w-3.5 rounded-full bg-[#0f0f11] px-0.5 text-[#ea580c]" />
       </span>
-      <Flame className="flame-flicker absolute -top-2 h-3.5 w-3.5 rounded-full bg-[#0f0f11] px-0.5 text-[#ea580c]" />
-    </span>
+    );
+  }
+  return (
+    <img
+      src={LOGO_SRC}
+      alt="Logo Ponto da Costela"
+      width="512"
+      height="512"
+      decoding="async"
+      onError={() => setFailed(true)}
+      className={`shrink-0 rounded-full object-contain shadow-lg shadow-black/40 ring-2 ring-[#e6b95c]/70 ${className}`}
+    />
   );
 }
 
 function Logo() {
   return (
     <a href="#inicio" className="group flex items-center gap-3" aria-label="Ponto da Costela - início">
-      <Monogram className="h-12 w-12 transition-transform group-hover:scale-105" />
+      <BrandLogo className="h-12 w-12 transition-transform group-hover:scale-105" />
       <span className="leading-none">
         <span className="block font-display text-lg font-semibold text-[#f3e3bf]">Ponto da Costela</span>
         <span className="mt-1 block text-[10px] font-semibold tracking-[0.3em] text-[#e6b95c]/80 uppercase">
@@ -925,6 +942,7 @@ function Hero({ status }) {
   return (
     <section id="inicio" className="relative flex min-h-[calc(100svh-7rem)] scroll-mt-24 items-center">
       <div className="text-shadow-hero mx-auto flex w-full max-w-5xl flex-col items-center px-4 pt-16 pb-12 text-center sm:px-6 md:pt-24">
+        <BrandLogo className="mb-6 h-28 w-28 shadow-2xl ring-4 md:h-36 md:w-36" />
         <p className="font-script text-3xl text-[#e6b95c] md:text-4xl">Churrasco raiz desde o Arruda</p>
         <h1 className="mt-3 font-display text-[2.6rem] leading-[1.05] font-medium text-[#f3e3bf] sm:text-6xl lg:text-7xl">
           O Verdadeiro <em className="text-[#e6b95c]">Churrasco Raiz</em>
@@ -1528,7 +1546,7 @@ function Footer() {
     <footer className="relative border-t border-[#e6b95c]/15 bg-black">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
         <div className="flex flex-col items-center text-center">
-          <Monogram className="h-16 w-16" />
+          <BrandLogo className="h-24 w-24" />
           <p className="mt-4 font-display text-2xl text-[#f3e3bf]">Ponto da Costela</p>
           <p className="mt-1 font-script text-2xl text-[#e6b95c]">{BRAND.slogan}</p>
           <div className="mt-4 flex items-center gap-1 text-sm text-zinc-300">
@@ -1674,7 +1692,7 @@ function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear })
 
         {lines.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center">
-            <Monogram className="h-20 w-20" />
+            <BrandLogo className="h-24 w-24" />
             <p className="font-display text-2xl text-[#f3e3bf]">A grelha ainda está vazia</p>
             <p className="text-sm text-zinc-400">
               Adicione a costela, uns petiscos e aquele chopp gelado. A gente cuida do resto.
