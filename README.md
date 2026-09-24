@@ -35,3 +35,11 @@ Estes dados são exemplos e ficam no topo do `App.jsx`:
 - `MENU`: pratos, descrições e **preços**
 - `HOURS`: horários de funcionamento por dia (a barra de aviso e o selo "Aberto agora" usam esses valores no fuso de Recife)
 - Fotos: vêm do Unsplash. Se alguma não carregar, o card mostra um emoji.
+
+## Publicação (GitHub Pages)
+
+O workflow `.github/workflows/deploy.yml` gera o site e publica no GitHub Pages a cada push na branch principal.
+
+Na primeira vez, ative em **Settings → Pages → Build and deployment → Source: GitHub Actions**. Depois, rode de novo o workflow em **Actions → Publicar no GitHub Pages → Run workflow**.
+
+Endereço: `https://lucasmendonca-dev05.github.io/ponto-da-costela/`
