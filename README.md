@@ -28,13 +28,14 @@ O fundo é o vídeo de drone da fachada e do salão, comprimido em `public/video
 
 Inspirado em sites de restaurante elegantes: títulos em Playfair Display, detalhes em letra cursiva (Great Vibes), texto em Raleway, dourado sobre carvão, botões com contorno e uma seção clara em creme.
 
-## O que conferir antes de publicar
+## Cardápio
 
-Estes dados são exemplos e ficam no topo do `App.jsx`:
+`MENU`, no topo do `App.jsx`, segue o cardápio impresso da casa: pratos feitos, chapas especiais, pratos completos, bebidas sem álcool, cervejas, vinhos, destilados e whisky.
 
-- `MENU`: pratos, descrições e **preços**
-- `HOURS`: horários de funcionamento por dia (a barra de aviso e o selo "Aberto agora" usam esses valores no fuso de Recife)
-- Fotos: vêm do Unsplash. Se alguma não carregar, o card mostra um emoji.
+- `variants`: tamanhos com preço próprio (500g/1kg, dose/litro, copo/jarra, lata/1 litro).
+- `options`: escolhas obrigatórias sem custo (sabor do suco e do refrigerante, feijão, arroz, purê ou batata, ponto da carne). O cliente escolhe numa janela, e as escolhas vão junto na mensagem do WhatsApp.
+
+Ainda confira os horários em `HOURS`. As fotos dos pratos vêm do Unsplash (são ilustrativas). Se alguma não carregar, o card mostra um emoji.
 
 ## Publicação (GitHub Pages)
 

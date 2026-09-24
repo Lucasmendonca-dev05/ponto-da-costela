@@ -13,7 +13,8 @@ import {
   ChefHat,
   ChevronRight,
   CircleParking,
-  Drumstick,
+  CupSoda,
+  GlassWater,
   Eye,
   EyeOff,
   Flame,
@@ -27,7 +28,6 @@ import {
   Phone,
   Play,
   Plus,
-  Sandwich,
   ShoppingBag,
   Soup,
   Sparkles,
@@ -37,6 +37,7 @@ import {
   Trophy,
   Tv,
   UtensilsCrossed,
+  Wine,
   X,
 } from "lucide-react";
 
@@ -109,283 +110,470 @@ const img = (id) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=800&q=70`;
 
 /* ============================================================
-   CARDÁPIO
+   CARDÁPIO OFICIAL (transcrito do cardápio impresso da casa)
+   - variants: tamanhos/porções com preço próprio (ex.: 500g / 1kg, dose / litro)
+   - options: escolhas sem custo extra (sabor, feijão, arroz, ponto da carne…)
    ============================================================ */
 
 const CATEGORIES = [
   { id: "todos", label: "Todos", icon: LayoutGrid },
-  { id: "brasa", label: "Na Brasa", icon: Flame },
-  { id: "regionais", label: "Regionais", icon: ChefHat },
-  { id: "petiscos", label: "Petiscos", icon: Drumstick },
-  { id: "burgers", label: "Burgers", icon: Sandwich },
-  { id: "sopas", label: "Sopas", icon: Soup },
-  { id: "bebidas", label: "Bebidas", icon: Beer },
+  { id: "pratos-feitos", label: "Pratos Feitos", icon: UtensilsCrossed },
+  { id: "chapas", label: "Chapas Especiais", icon: Flame },
+  { id: "completos", label: "Pratos Completos", icon: ChefHat },
+  { id: "sem-alcool", label: "Sem Álcool", icon: CupSoda },
+  { id: "cervejas", label: "Cervejas", icon: Beer },
+  { id: "destilados", label: "Vinhos & Destilados", icon: Wine },
+  { id: "whisky", label: "Whisky", icon: GlassWater },
+];
+
+// Categorias exibidas em lista compacta (sem foto)
+const COMPACT_CATEGORIES = new Set(["sem-alcool", "cervejas", "destilados", "whisky"]);
+
+/* Grupos de opções reutilizáveis */
+const OPT_FEIJAO = { id: "feijao", label: "Feijão", choices: ["Mulato", "Tropeiro", "Macassar"] };
+const OPT_ARROZ = { id: "arroz", label: "Arroz", choices: ["Branco", "Carioca"] };
+const OPT_PURE_BATATA = { id: "acomp", label: "Acompanhamento", choices: ["Purê", "Batata frita"] };
+const OPT_PONTO = { id: "ponto", label: "Ponto da carne", choices: ["Mal passada", "Ao ponto", "Bem passada"] };
+const OPT_ARROZ_OPCIONAL = { id: "arroz", label: "Arroz", choices: ["Com arroz", "Sem arroz"] };
+const OPT_SUCO = { id: "sabor", label: "Sabor", choices: ["Cajá", "Graviola", "Cupuaçu", "Limão"] };
+const OPT_REFRI = { id: "sabor", label: "Sabor", choices: ["Coca-Cola", "Guaraná Antarctica", "Fanta", "Sprite"] };
+
+const PF_COMPLETO = "Feijão mulato, tropeiro ou macassar; arroz branco ou carioca, macarrão, farofa, vinagrete, purê ou batata frita.";
+const COMPLETO_DESC = "Feijão mulato, tropeiro ou macassar; arroz branco ou carioca, macarrão, purê ou batata frita, farofa e vinagrete.";
+const CHAPA_ESPECIAL_DESC = "Macaxeira na manteiga, batata frita com cheddar, bacon e pimenta de cheiro.";
+const PARMEGIANA_DESC = (proteina) =>
+  `Macarrão, molho de tomate, queijo muçarela, ${proteina} empanado, purê, queijo ralado e orégano.`;
+const OPTS_PF = [OPT_FEIJAO, OPT_ARROZ, OPT_PURE_BATATA];
+
+const g500kg = (p500, p1k) => [
+  { id: "500g", label: "500g", price: p500 },
+  { id: "1kg", label: "1kg", price: p1k },
+];
+const doseLitro = (dose, litro) => [
+  { id: "dose", label: "Dose", price: dose },
+  { id: "litro", label: "Litro", price: litro },
 ];
 
 const MENU = [
+  /* ---------- PRATOS FEITOS ---------- */
   {
-    id: "costela-especial",
-    category: "brasa",
-    name: "Costela Especial na Brasa",
-    description:
-      "Costela bovina assada lentamente por horas, desmanchando no osso. Acompanha farofa da casa, vinagrete e mandioca.",
-    price: 89.9,
-    serves: "Serve 2 a 3",
+    id: "pf-costela",
+    category: "pratos-feitos",
+    name: "Costela",
+    description: "Arroz branco, pirão e vinagrete.",
+    price: 25,
     popular: true,
     emoji: "🥩",
     image: img("photo-1544025162-d76694265947"),
   },
   {
-    id: "picanha-brasa",
-    category: "brasa",
-    name: "Picanha na Brasa",
-    description:
-      "Picanha selecionada com capa de gordura dourada no fogo, sal grosso, arroz, farofa e vinagrete.",
-    price: 99.9,
-    serves: "Serve 2",
-    emoji: "🔥",
+    id: "pf-arrumadinho-charque",
+    category: "pratos-feitos",
+    name: "Arrumadinho de Charque",
+    description: "Feijão macassar, vinagrete, farofa, charque e arroz (opcional).",
+    price: 26,
+    options: [OPT_ARROZ_OPCIONAL],
+    emoji: "🫘",
+    image: img("photo-1512058564366-18510be2db19"),
+  },
+  {
+    id: "pf-arrumadinho-carne-sol",
+    category: "pratos-feitos",
+    name: "Arrumadinho de Carne de Sol",
+    description: "Feijão macassar, vinagrete, farofa, carne de sol e arroz (opcional).",
+    price: 27,
+    options: [OPT_ARROZ_OPCIONAL],
+    emoji: "🫘",
+    image: img("photo-1512058564366-18510be2db19"),
+  },
+  {
+    id: "pf-camarao-parmegiana",
+    category: "pratos-feitos",
+    name: "Camarão à Parmegiana",
+    description: PARMEGIANA_DESC("filé de camarão"),
+    price: 28,
+    emoji: "🦐",
+    image: img("photo-1565680018434-b513d5e5fd47"),
+  },
+  {
+    id: "pf-file-parmegiana",
+    category: "pratos-feitos",
+    name: "Filé à Parmegiana",
+    description: PARMEGIANA_DESC("filé"),
+    price: 28,
+    emoji: "🍝",
+    image: img("photo-1604908176997-125f25cc6f3d"),
+  },
+  {
+    id: "pf-frango-parmegiana",
+    category: "pratos-feitos",
+    name: "Frango à Parmegiana",
+    description: PARMEGIANA_DESC("filé de frango"),
+    price: 26,
+    emoji: "🍗",
+    image: img("photo-1632778149955-e80f8ceca2e8"),
+  },
+  {
+    id: "pf-cupim-molho",
+    category: "pratos-feitos",
+    name: "Cupim ao Molho",
+    description: PF_COMPLETO,
+    price: 27,
+    options: OPTS_PF,
+    emoji: "🍖",
+    image: img("photo-1558030006-450675393462"),
+  },
+  {
+    id: "pf-cupim-assado",
+    category: "pratos-feitos",
+    name: "Cupim Assado",
+    description: PF_COMPLETO,
+    price: 27,
+    options: OPTS_PF,
+    emoji: "🍖",
     image: img("photo-1529692236671-f1f6cf9683ba"),
   },
   {
-    id: "espetinhos-mistos",
-    category: "brasa",
-    name: "Espetinhos Mistos (4 un.)",
-    description:
-      "Boi, frango, linguiça e queijo coalho tostado na brasa, com molho de alho da casa.",
-    price: 42.9,
-    emoji: "🍢",
-    image: img("photo-1555939594-58d7cb561ad1"),
+    id: "pf-carne-de-sol",
+    category: "pratos-feitos",
+    name: "Carne de Sol",
+    description: PF_COMPLETO,
+    price: 27,
+    options: OPTS_PF,
+    emoji: "🥩",
+    image: img("photo-1504674900247-0877df9cc836"),
   },
   {
-    id: "linguica-artesanal",
-    category: "brasa",
-    name: "Linguiça Artesanal na Brasa",
-    description:
-      "Linguiça artesanal suculenta, grelhada no carvão, com cebola caramelizada e pão de alho.",
-    price: 34.9,
-    emoji: "🌭",
-    image: img("photo-1532636875304-0c89119d9b4d"),
+    id: "pf-frango-empanado",
+    category: "pratos-feitos",
+    name: "Frango Empanado",
+    description: PF_COMPLETO,
+    price: 25,
+    options: OPTS_PF,
+    emoji: "🍗",
+    image: img("photo-1598103442097-8b74394b95c6"),
   },
   {
-    id: "carne-de-sol",
-    category: "regionais",
-    name: "Carne de Sol com Queijo Empanado & Macaxeira",
+    id: "pf-galeto",
+    category: "pratos-feitos",
+    name: "Galeto",
+    description: PF_COMPLETO,
+    price: 27,
+    options: OPTS_PF,
+    emoji: "🍗",
+    image: img("photo-1598515214211-89d3c73ae83b"),
+  },
+  {
+    id: "pf-maminha",
+    category: "pratos-feitos",
+    name: "Maminha",
+    description: PF_COMPLETO,
+    price: 36,
+    options: [...OPTS_PF, OPT_PONTO],
+    emoji: "🥩",
+    image: img("photo-1546833998-877b37c2e5c6"),
+  },
+  {
+    id: "pf-picanha",
+    category: "pratos-feitos",
+    name: "Picanha",
+    description: PF_COMPLETO,
+    price: 39,
+    popular: true,
+    options: [...OPTS_PF, OPT_PONTO],
+    emoji: "🥩",
+    image: img("photo-1594041680534-e8c8cdebd659"),
+  },
+  {
+    id: "pf-caldeirada",
+    category: "pratos-feitos",
+    name: "Caldeirada",
+    description: "Arroz, pirão e caldeirada.",
+    price: 30,
+    emoji: "🍲",
+    image: img("photo-1547592180-85f173990554"),
+  },
+
+  /* ---------- CHAPAS ESPECIAIS ---------- */
+  {
+    id: "chapa-costela-bafo",
+    category: "chapas",
+    name: "Costela no Bafo 1kg",
+    description: CHAPA_ESPECIAL_DESC,
+    price: 105,
+    serves: "1kg",
+    popular: true,
+    emoji: "🥩",
+    image: img("photo-1544025162-d76694265947"),
+  },
+  {
+    id: "chapa-cupim",
+    category: "chapas",
+    name: "Cupim na Chapa",
     description:
-      "O clássico regional: carne de sol na manteiga de garrafa, queijo coalho empanado crocante e macaxeira frita sequinha.",
-    price: 79.9,
-    serves: "Serve 2",
+      "Arroz branco ou carioca, feijão mulatinho, macassar ou tropeiro, macarrão, purê ou batata frita, vinagrete e farofa.",
+    variants: [
+      { id: "500g", label: "500g", price: 65 },
+      { id: "1kg", label: "1kg", price: 90 },
+    ],
+    options: [OPT_ARROZ, { ...OPT_FEIJAO, choices: ["Mulatinho", "Macassar", "Tropeiro"] }, OPT_PURE_BATATA],
+    emoji: "🍖",
+    image: img("photo-1558030006-450675393462"),
+  },
+  {
+    id: "chapa-maminha",
+    category: "chapas",
+    name: "Maminha na Chapa 1kg",
+    description: CHAPA_ESPECIAL_DESC,
+    price: 165,
+    serves: "1kg",
+    options: [OPT_PONTO],
+    emoji: "🥩",
+    image: img("photo-1546833998-877b37c2e5c6"),
+  },
+  {
+    id: "chapa-picanha",
+    category: "chapas",
+    name: "Picanha na Chapa 1kg",
+    description: CHAPA_ESPECIAL_DESC,
+    price: 185,
+    serves: "1kg",
+    options: [OPT_PONTO],
+    emoji: "🔥",
+    image: img("photo-1594041680534-e8c8cdebd659"),
+  },
+
+  /* ---------- PRATOS COMPLETOS ---------- */
+  {
+    id: "comp-arrumadinho-charque",
+    category: "completos",
+    name: "Arrumadinho de Charque",
+    description: "Para 2 pessoas. Feijão macassar, vinagrete, farofa, charque e arroz (opcional).",
+    price: 42,
+    serves: "2 pessoas",
+    options: [OPT_ARROZ_OPCIONAL],
+    emoji: "🫘",
+    image: img("photo-1512058564366-18510be2db19"),
+  },
+  {
+    id: "comp-arrumadinho-carne-sol",
+    category: "completos",
+    name: "Arrumadinho de Carne de Sol",
+    description: "Para 2 pessoas. Feijão macassar, vinagrete, farofa, carne de sol e arroz (opcional).",
+    price: 45,
+    serves: "2 pessoas",
+    options: [OPT_ARROZ_OPCIONAL],
+    emoji: "🫘",
+    image: img("photo-1512058564366-18510be2db19"),
+  },
+  {
+    id: "comp-carne-sol-queijo",
+    category: "completos",
+    name: "Carne de Sol na Chapa c/ Queijo Coalho",
+    description: COMPLETO_DESC,
+    variants: g500kg(100, 150),
+    options: OPTS_PF,
     popular: true,
     emoji: "🧀",
     image: img("photo-1504674900247-0877df9cc836"),
   },
   {
-    id: "mao-de-vaca",
-    category: "regionais",
-    name: "Mão de Vaca com Pirão",
-    description:
-      "Prato quente típico pernambucano, cozido lentamente com temperos da terra e pirão tradicional encorpado.",
-    price: 64.9,
-    serves: "Serve 2",
+    id: "comp-costela-bovina-bafo",
+    category: "completos",
+    name: "Costela Bovina no Bafo",
+    description: COMPLETO_DESC,
+    variants: g500kg(70, 100),
+    options: OPTS_PF,
+    popular: true,
+    emoji: "🥩",
+    image: img("photo-1544025162-d76694265947"),
+  },
+  {
+    id: "comp-costela-suina-bafo",
+    category: "completos",
+    name: "Costela Suína no Bafo",
+    description: COMPLETO_DESC,
+    variants: g500kg(70, 100),
+    options: OPTS_PF,
+    emoji: "🍖",
+    image: img("photo-1529692236671-f1f6cf9683ba"),
+  },
+  {
+    id: "comp-feijoada",
+    category: "completos",
+    name: "Feijoada",
+    description: "Acompanha arroz, farofa e vinagrete.",
+    variants: [
+      { id: "meio-litro", label: "1/2 litro", price: 42 },
+      { id: "litro", label: "1 litro", price: 65 },
+    ],
     emoji: "🍲",
     image: img("photo-1547592166-23ac45744acd"),
   },
   {
-    id: "arrumadinho",
-    category: "regionais",
-    name: "Arrumadinho de Charque",
-    description:
-      "Charque acebolada, feijão verde, farofa, vinagrete e queijo coalho em cubos. Nordeste raiz no prato.",
-    price: 39.9,
-    emoji: "🫘",
-    image: img("photo-1512058564366-18510be2db19"),
+    id: "comp-fraldinha",
+    category: "completos",
+    name: "Fraldinha",
+    description: COMPLETO_DESC,
+    variants: g500kg(85, 115),
+    options: [...OPTS_PF, OPT_PONTO],
+    emoji: "🥩",
+    image: img("photo-1558030006-450675393462"),
   },
   {
-    id: "camarao-alho-oleo",
-    category: "petiscos",
-    name: "Camarão Alho e Óleo",
-    description:
-      "Camarões salteados no alho dourado e azeite, finalizados com salsinha. Acompanha pão torrado.",
-    price: 59.9,
-    popular: true,
-    emoji: "🦐",
-    image: img("photo-1565680018434-b513d5e5fd47"),
+    id: "comp-galeto",
+    category: "completos",
+    name: "Galeto Completo",
+    description: COMPLETO_DESC,
+    price: 65,
+    options: OPTS_PF,
+    emoji: "🍗",
+    image: img("photo-1598515214211-89d3c73ae83b"),
   },
   {
-    id: "batata-cheddar-bacon",
-    category: "petiscos",
-    name: "Batata Frita Cheddar & Bacon",
-    description:
-      "Porção generosa de batata crocante coberta com cheddar cremoso e bacon em cubos.",
-    price: 32.9,
-    emoji: "🍟",
-    image: img("photo-1573080496219-bb080dd4f877"),
+    id: "comp-maminha",
+    category: "completos",
+    name: "Maminha",
+    description: COMPLETO_DESC,
+    variants: g500kg(110, 160),
+    options: [...OPTS_PF, OPT_PONTO],
+    emoji: "🥩",
+    image: img("photo-1546833998-877b37c2e5c6"),
   },
   {
-    id: "bolinhos-charque",
-    category: "petiscos",
-    name: "Bolinhos Crocantes de Charque (10 un.)",
-    description:
-      "Bolinhos de macaxeira recheados com charque e queijo, fritos na hora. Crocantes por fora, cremosos por dentro.",
-    price: 29.9,
-    emoji: "🧆",
-    image: img("photo-1541592106381-b31e9677c0e5"),
+    id: "comp-picanha",
+    category: "completos",
+    name: "Picanha",
+    description: COMPLETO_DESC,
+    variants: g500kg(125, 180),
+    options: [...OPTS_PF, OPT_PONTO],
+    emoji: "🔥",
+    image: img("photo-1594041680534-e8c8cdebd659"),
+  },
+
+  /* ---------- BEBIDAS NÃO ALCOÓLICAS ---------- */
+  { id: "agua-sem-gas", category: "sem-alcool", name: "Água sem Gás", price: 3, emoji: "💧" },
+  { id: "agua-com-gas", category: "sem-alcool", name: "Água com Gás", price: 5, emoji: "💧" },
+  { id: "agua-tonica", category: "sem-alcool", name: "Água Tônica", price: 6, emoji: "🫧" },
+  {
+    id: "agua-de-coco",
+    category: "sem-alcool",
+    name: "Água de Coco",
+    variants: [
+      { id: "copo", label: "Copo", price: 6 },
+      { id: "jarra", label: "Jarra", price: 18 },
+    ],
+    emoji: "🥥",
   },
   {
-    id: "dadinho-tapioca",
-    category: "petiscos",
-    name: "Dadinho de Tapioca com Melaço",
-    description:
-      "Dadinhos de tapioca com queijo coalho, servidos com melaço de cana e pimenta da casa.",
-    price: 26.9,
-    emoji: "🧈",
-    image: img("photo-1601050690597-df0568f70950"),
+    id: "h2o",
+    category: "sem-alcool",
+    name: "H2O",
+    price: 7,
+    options: [{ id: "sabor", label: "Sabor", choices: ["Limão", "Limoneto"] }],
+    emoji: "🍋",
   },
   {
-    id: "burguer-brasa",
-    category: "burgers",
-    name: "Burguer Brasa",
-    description:
-      "Blend bovino 180g grelhado no fogo, queijo derretido, bacon crocante, cebola caramelizada e maionese defumada no pão brioche.",
-    price: 36.9,
-    popular: true,
-    emoji: "🍔",
-    image: img("photo-1568901346375-23c9450c58cd"),
+    id: "monster",
+    category: "sem-alcool",
+    name: "Monster",
+    variants: [
+      { id: "265ml", label: "265ml", price: 12 },
+      { id: "365ml", label: "365ml", price: 17 },
+    ],
+    emoji: "⚡",
   },
-  {
-    id: "burguer-costela",
-    category: "burgers",
-    name: "Burguer de Costela Desfiada",
-    description:
-      "Costela desfiada da casa, queijo coalho maçaricado, cebola roxa e barbecue de rapadura.",
-    price: 39.9,
-    emoji: "🥪",
-    image: img("photo-1553979459-d2229ba7433b"),
-  },
-  {
-    id: "smash-duplo",
-    category: "burgers",
-    name: "Smash Duplo",
-    description:
-      "Dois smash de 90g com crosta perfeita, cheddar duplo, picles e molho especial.",
-    price: 32.9,
-    emoji: "🍔",
-    image: img("photo-1550547660-d9450f859349"),
-  },
-  {
-    id: "caldinho-feijao",
-    category: "sopas",
-    name: "Caldinho de Feijão",
-    description:
-      "Caldinho cremoso com bacon, charque e cebolinha. Ideal para abrir os trabalhos.",
-    price: 12.9,
-    emoji: "🥣",
-    image: img("photo-1547592180-85f173990554"),
-  },
-  {
-    id: "caldinho-camarao",
-    category: "sopas",
-    name: "Caldinho de Camarão",
-    description: "Caldinho encorpado de camarão com leite de coco e coentro.",
-    price: 16.9,
-    emoji: "🍤",
-    image: img("photo-1476718406336-bb5a9690ee2a"),
-  },
-  {
-    id: "caldo-mocoto",
-    category: "sopas",
-    name: "Caldo de Mocotó",
-    description:
-      "Tradicional, forte e quentinho. Aquele que levanta qualquer um depois do jogo.",
-    price: 22.9,
-    emoji: "🍜",
-    image: img("photo-1604152135912-04a022e23696"),
-  },
-  {
-    id: "chopp-pilsen",
-    category: "bebidas",
-    name: "Chopp Pilsen 300ml",
-    description: "Tirado na hora, colarinho cremoso e temperatura de congelar a alma.",
-    price: 9.9,
-    popular: true,
-    emoji: "🍺",
-    image: img("photo-1608270586620-248524c67de9"),
-  },
-  {
-    id: "balde-long-neck",
-    category: "bebidas",
-    name: "Balde com 5 Long Necks",
-    description: "Cerveja estupidamente gelada no balde de gelo. Perfeito para a resenha.",
-    price: 49.9,
-    emoji: "🧊",
-    image: img("photo-1535958636474-b021ee887b13"),
-  },
-  {
-    id: "caipirinha",
-    category: "bebidas",
-    name: "Caipirinha da Casa",
-    description: "Limão, cachaça artesanal e açúcar na medida. Também com vodka ou saquê.",
-    price: 19.9,
-    emoji: "🍹",
-    image: img("photo-1541546006121-5c3bc5e8c7b9"),
-  },
-  {
-    id: "suco-natural",
-    category: "bebidas",
-    name: "Suco Natural 500ml",
-    description: "Maracujá, acerola, cajá ou graviola. Feito na hora.",
-    price: 10.9,
-    emoji: "🥤",
-    image: img("photo-1600271886742-f049cd451bba"),
-  },
+  { id: "red-bull", category: "sem-alcool", name: "Red Bull", price: 15, emoji: "⚡" },
+  { id: "refri-ks", category: "sem-alcool", name: "Refrigerante KS Coca-Cola", price: 5, emoji: "🥤" },
   {
     id: "refrigerante",
-    category: "bebidas",
-    name: "Refrigerante Lata",
-    description: "Coca-Cola, Guaraná ou Fanta, bem gelados.",
-    price: 6.9,
-    emoji: "🥫",
-    image: img("photo-1581636625402-29b2a704ef13"),
+    category: "sem-alcool",
+    name: "Refrigerante",
+    description: "Coca-Cola, Guaraná Antarctica, Fanta ou Sprite.",
+    variants: [
+      { id: "lata", label: "Lata", price: 7.5 },
+      { id: "1l", label: "1 litro", price: 12 },
+    ],
+    options: [OPT_REFRI],
+    emoji: "🥤",
   },
+  {
+    id: "suco",
+    category: "sem-alcool",
+    name: "Suco",
+    description: "Cajá, graviola, cupuaçu ou limão.",
+    variants: [
+      { id: "copo", label: "Copo 300ml", price: 7 },
+      { id: "jarra", label: "Jarra", price: 16 },
+    ],
+    options: [OPT_SUCO],
+    emoji: "🧃",
+  },
+
+  /* ---------- CERVEJAS ---------- */
+  { id: "brahma-600", category: "cervejas", name: "Brahma 600ml", price: 13, popular: true, emoji: "🍺" },
+  { id: "heineken-600", category: "cervejas", name: "Heineken 600ml", price: 16, emoji: "🍺" },
+  { id: "amstel-600", category: "cervejas", name: "Amstel 600ml", price: 14, emoji: "🍺" },
+  { id: "petra-600", category: "cervejas", name: "Petra 600ml", price: 10, emoji: "🍺" },
+  { id: "eisenbahn-600", category: "cervejas", name: "Eisenbahn 600ml", price: 14, emoji: "🍺" },
+  { id: "heineken-ln", category: "cervejas", name: "Heineken Long Neck", price: 11, emoji: "🍾" },
+  { id: "heineken-zero-ln", category: "cervejas", name: "Heineken Zero Long Neck", price: 11, emoji: "🍾" },
+
+  /* ---------- VINHOS & DESTILADOS ---------- */
+  { id: "vinho-quinta-morgado", category: "destilados", name: "Vinho Quinta do Morgado 750ml", price: 25, emoji: "🍷" },
+  { id: "vinho-pergola", category: "destilados", name: "Vinho Pérgola 1 litro", price: 35, emoji: "🍷" },
+  { id: "gin-tanqueray", category: "destilados", name: "Gin Tanqueray", variants: doseLitro(15, 100), emoji: "🍸" },
+  { id: "vodka-orloff", category: "destilados", name: "Vodka Orloff", variants: doseLitro(7, 70), emoji: "🍸" },
+  { id: "vodka-smirnoff", category: "destilados", name: "Vodka Smirnoff", variants: doseLitro(9, 90), emoji: "🍸" },
+
+  /* ---------- WHISKY ---------- */
+  { id: "black-white", category: "whisky", name: "Black & White", variants: doseLitro(9, 100), emoji: "🥃" },
+  { id: "old-parr", category: "whisky", name: "Old Parr", variants: doseLitro(16, 230), emoji: "🥃" },
+  { id: "johnnie-walker", category: "whisky", name: "Johnnie Walker", variants: doseLitro(11, 155), emoji: "🥃" },
+  { id: "white-horse", category: "whisky", name: "White Horse", variants: doseLitro(10, 140), emoji: "🥃" },
 ];
 
 const MENU_BY_ID = Object.fromEntries(MENU.map((item) => [item.id, item]));
 
+const needsChoice = (item) => Boolean(item.variants?.length || item.options?.length);
+const minPrice = (item) => (item.variants ? Math.min(...item.variants.map((v) => v.price)) : item.price);
+
 const HIGHLIGHTS = [
   {
-    itemId: "costela-especial",
-    title: "Costela Especial na Brasa",
-    text: "Assada lentamente, desmanchando no osso, com farofa e vinagrete.",
+    itemId: "chapa-costela-bafo",
+    title: "Costela no Bafo",
+    text: "Um quilo de costela desmanchando, com macaxeira na manteiga e batata frita com cheddar, bacon e pimenta de cheiro.",
     tag: "Estrela da casa",
     icon: Flame,
     featured: true,
   },
   {
-    itemId: "carne-de-sol",
-    title: "Carne de Sol com Queijo Empanado & Macaxeira",
-    text: "O clássico regional farto e crocante.",
+    itemId: "comp-carne-sol-queijo",
+    title: "Carne de Sol na Chapa c/ Queijo Coalho",
+    text: "O clássico nordestino na chapa, servido completo. 500g ou 1kg.",
     tag: "Regional",
     icon: ChefHat,
   },
   {
-    itemId: "burguer-brasa",
-    title: "Burguer Brasa",
-    text: "Blend suculento grelhado no fogo com queijo derretido e bacon.",
-    tag: "No fogo",
-    icon: Sandwich,
+    itemId: "comp-picanha",
+    title: "Picanha Completa",
+    text: "Picanha no ponto que você escolher, com feijão, arroz, macarrão, farofa e vinagrete.",
+    tag: "Na brasa",
+    icon: Beef,
   },
   {
-    itemId: "mao-de-vaca",
-    title: "Mão de Vaca com Pirão Tradicional",
-    text: "Prato quente típico da culinária pernambucana.",
+    itemId: "pf-arrumadinho-charque",
+    title: "Arrumadinho de Charque",
+    text: "Feijão macassar, charque, farofa e vinagrete. Pernambuco no prato.",
     tag: "Pernambucano",
     icon: Soup,
   },
   {
-    itemId: "camarao-alho-oleo",
-    title: "Petiscos de Respeito",
-    text: "Camarão alho e óleo, batata frita e bolinhos crocantes.",
+    itemId: "comp-feijoada",
+    title: "Feijoada",
+    text: "Encorpada, com arroz, farofa e vinagrete. Meio litro ou um litro.",
     tag: "Pra dividir",
-    icon: Drumstick,
+    icon: UtensilsCrossed,
   },
 ];
 
@@ -445,15 +633,55 @@ function getOpenStatus() {
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const money = (value) => brl.format(value);
 
-const CART_KEY = "ponto-da-costela:cart";
+/*
+  Carrinho: cada linha é um item + tamanho + opções escolhidas.
+  { [chave]: { itemId, variantId, options: { feijao: "Tropeiro", … }, qty } }
+*/
+const CART_KEY = "ponto-da-costela:cart:v2";
+
+function makeLineKey(itemId, variantId = "", options = {}) {
+  const opts = Object.keys(options)
+    .sort()
+    .map((key) => `${key}=${options[key]}`);
+  return [itemId, variantId, ...opts].join("|");
+}
+
+function getVariant(item, variantId) {
+  return item.variants?.find((v) => v.id === variantId);
+}
+
+function linePrice(line) {
+  const item = MENU_BY_ID[line.itemId];
+  if (!item) return 0;
+  return item.variants ? getVariant(item, line.variantId)?.price ?? 0 : item.price;
+}
+
+function lineTitle(line) {
+  const item = MENU_BY_ID[line.itemId];
+  const variant = item && getVariant(item, line.variantId);
+  return variant ? `${item.name} (${variant.label})` : item?.name ?? "";
+}
+
+function lineDetails(line) {
+  const item = MENU_BY_ID[line.itemId];
+  if (!item?.options) return [];
+  return item.options
+    .filter((opt) => line.options?.[opt.id])
+    .map((opt) => `${opt.label}: ${line.options[opt.id]}`);
+}
+
+function isValidLine(line) {
+  const item = line && MENU_BY_ID[line.itemId];
+  if (!item || !(line.qty > 0)) return false;
+  if (item.variants && !getVariant(item, line.variantId)) return false;
+  return (item.options ?? []).every((opt) => opt.choices.includes(line.options?.[opt.id]));
+}
 
 function loadCart() {
   try {
     const raw = window.localStorage.getItem(CART_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
-    return Object.fromEntries(
-      Object.entries(parsed).filter(([id, qty]) => MENU_BY_ID[id] && qty > 0)
-    );
+    return Object.fromEntries(Object.entries(parsed).filter(([, line]) => isValidLine(line)));
   } catch {
     return {};
   }
@@ -658,7 +886,7 @@ function BackgroundVideo({ videoRef, playing, focusMode, onAllSourcesFailed, vid
 
 function FoodImage({ src, alt, emoji, className = "" }) {
   const [failed, setFailed] = useState(false);
-  if (failed) {
+  if (failed || !src) {
     return (
       <div
         role="img"
@@ -936,7 +1164,7 @@ function Hero({ status }) {
   const badges = [
     { icon: Star, label: `${BRAND.rating} no Google Reviews`, fill: true },
     { icon: Beef, label: `+${BRAND.followers.replace("+", "")} seguidores apaixonados por churrasco` },
-    { icon: Beer, label: "Chopp e Cerveja Estupidamente Gelados" },
+    { icon: Beer, label: "Cerveja Estupidamente Gelada" },
   ];
 
   return (
@@ -950,7 +1178,7 @@ function Hero({ status }) {
         </h1>
         <Ornament className="mt-6 text-[#e6b95c]/70" />
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-zinc-300 md:text-xl">
-          Costela derretendo na brasa, petiscos fartos, hambúrguer artesanal e aquela cerveja trincando de gelada.
+          Costela no bafo desmanchando, carne de sol na chapa com queijo coalho, prato feito caprichado e aquela cerveja trincando de gelada.
         </p>
         <div className="mt-9 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
           <a href="#cardapio" className={`${BTN_GOLD} glow-btn px-8 py-4 text-base`}>
@@ -1010,7 +1238,7 @@ function AboutSection() {
             className="row-span-2 h-full min-h-[320px] w-full rounded-2xl"
           />
           <FoodImage
-            src={MENU_BY_ID["costela-especial"].image}
+            src={MENU_BY_ID["chapa-costela-bafo"].image}
             alt="Costela na brasa"
             emoji="🥩"
             className="h-full min-h-[155px] w-full rounded-2xl"
@@ -1031,11 +1259,11 @@ function AboutSection() {
           />
           <div className="-mt-4 space-y-4 text-lg leading-relaxed text-[#5c5247]">
             <p>
-              No coração do Arruda, a costela assa devagar sobre o carvão até desmanchar no osso. É churrasco feito
+              No coração do Arruda, a costela sai no bafo, desmanchando no osso, e a carne de sol chega chiando na chapa. É comida feita
               sem pressa, com tempero pernambucano e porção que dá gosto de dividir.
             </p>
             <p>
-              Salão amplo e arejado, telões para o jogo, chopp tirado na hora e aquele atendimento de casa cheia.
+              Salão amplo e arejado, telões para o jogo, cerveja trincando e aquele atendimento de casa cheia.
               Aqui toda mesa vira resenha.
             </p>
           </div>
@@ -1068,14 +1296,36 @@ function AboutSection() {
   );
 }
 
-function Highlights({ onAdd }) {
+function PriceTag({ item, className = "" }) {
+  if (!item.variants) return <span className={className}>{money(item.price)}</span>;
+  return (
+    <span className={className}>
+      <span className="mr-1 font-body text-xs text-zinc-500">a partir de</span>
+      {money(minPrice(item))}
+    </span>
+  );
+}
+
+function VariantPrices({ item }) {
+  if (!item.variants) return null;
+  return (
+    <ul className="mt-3 flex flex-wrap gap-1.5">
+      {item.variants.map((v) => (
+        <li key={v.id} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-zinc-300">
+          {v.label} <span className="text-[#e6b95c]">{money(v.price)}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Highlights({ onChoose }) {
   const [featured, ...others] = HIGHLIGHTS;
   const featuredItem = MENU_BY_ID[featured.itemId];
 
   return (
     <section id="destaques" className="relative scroll-mt-24 bg-[#0f0f11] py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        {/* Destaque principal no estilo "Our Menu" */}
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div className="order-2 lg:order-1">
             <p className="font-script text-3xl text-[#e6b95c] md:text-4xl">Sinta o sabor</p>
@@ -1084,15 +1334,13 @@ function Highlights({ onAdd }) {
             </h2>
             <p className="mt-6 max-w-lg text-lg leading-relaxed text-zinc-400">
               A estrela da casa é a <strong className="font-semibold text-[#f3e3bf]">{featured.title}</strong>:{" "}
-              {featured.text.charAt(0).toLowerCase() + featured.text.slice(1)} Carvão de verdade, paciência e o tempero
-              que fez o Arruda inteiro sentir o cheiro.
+              {featured.text.charAt(0).toLowerCase() + featured.text.slice(1)}
             </p>
             <p className="mt-6 font-display text-3xl text-[#e6b95c]">
-              {money(featuredItem.price)}{" "}
-              <span className="text-base text-zinc-500">· {featuredItem.serves}</span>
+              <PriceTag item={featuredItem} />
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <button type="button" onClick={() => onAdd(featuredItem.id)} className={BTN_GOLD}>
+              <button type="button" onClick={() => onChoose(featuredItem.id)} className={BTN_GOLD}>
                 <Plus className="h-4 w-4" />
                 Adicionar ao pedido
               </button>
@@ -1119,7 +1367,6 @@ function Highlights({ onAdd }) {
           </div>
         </div>
 
-        {/* Demais destaques */}
         <div className="mt-20 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {others.map((highlight) => {
             const item = MENU_BY_ID[highlight.itemId];
@@ -1146,11 +1393,11 @@ function Highlights({ onAdd }) {
                   <span className="mt-3 h-px w-10 bg-[#e6b95c]/50" />
                   <p className="mt-3 flex-1 text-sm leading-relaxed text-zinc-400">{highlight.text}</p>
                   <div className="mt-5 flex items-center justify-between gap-3">
-                    <span className="font-display text-xl text-[#e6b95c]">{money(item.price)}</span>
+                    <PriceTag item={item} className="font-display text-xl text-[#e6b95c]" />
                     <button
                       type="button"
-                      onClick={() => onAdd(item.id)}
-                      className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e6b95c]/60 text-[#e6b95c] transition hover:bg-[#e6b95c] hover:text-black active:scale-90"
+                      onClick={() => onChoose(item.id)}
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#e6b95c]/60 text-[#e6b95c] transition hover:bg-[#e6b95c] hover:text-black active:scale-90"
                       aria-label={`Adicionar ${item.name}`}
                     >
                       <Plus className="h-4 w-4" />
@@ -1166,7 +1413,66 @@ function Highlights({ onAdd }) {
   );
 }
 
-function MenuCard({ item, quantity, onAdd, onRemove }) {
+/* Botão de ação do item: stepper para itens simples, "Escolher" para itens com opções */
+function ItemAction({ item, cart, onChoose, onChangeQty, compact = false }) {
+  if (needsChoice(item)) {
+    const inCart = Object.values(cart).reduce((sum, line) => (line.itemId === item.id ? sum + line.qty : sum), 0);
+    return (
+      <button
+        type="button"
+        onClick={() => onChoose(item.id)}
+        className={`${BTN_OUTLINE} relative ${compact ? "!px-3.5 !py-2 text-sm" : "!px-4 !py-2 text-sm"}`}
+      >
+        <Plus className="h-4 w-4" />
+        Escolher
+        {inCart > 0 && (
+          <span className="absolute -top-2 -right-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ea580c] px-1 text-[11px] font-bold text-white">
+            {inCart}
+          </span>
+        )}
+      </button>
+    );
+  }
+  const key = makeLineKey(item.id);
+  const quantity = cart[key]?.qty ?? 0;
+  if (quantity > 0) {
+    return (
+      <div className="flex items-center gap-1 rounded-full border border-[#e6b95c]/50 p-1">
+        <button
+          type="button"
+          onClick={() => onChangeQty(key, -1)}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-[#e6b95c] transition hover:bg-white/10 active:scale-90"
+          aria-label={`Remover um ${item.name}`}
+        >
+          <Minus className="h-4 w-4" />
+        </button>
+        <span className="w-6 text-center font-semibold text-white" aria-live="polite">
+          {quantity}
+        </span>
+        <button
+          type="button"
+          onClick={() => onChangeQty(key, 1)}
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-[#e6b95c] text-black active:scale-90"
+          aria-label={`Adicionar mais um ${item.name}`}
+        >
+          <Plus className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => onChoose(item.id)}
+      className={`${BTN_OUTLINE} ${compact ? "!px-3.5 !py-2 text-sm" : "!px-4 !py-2 text-sm"}`}
+    >
+      <Plus className="h-4 w-4" />
+      Adicionar
+    </button>
+  );
+}
+
+function MenuCard({ item, cart, onChoose, onChangeQty }) {
   return (
     <article className="group flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#18181b] transition duration-300 hover:border-[#e6b95c]/40 hover:shadow-xl hover:shadow-black/40">
       <div className="relative h-44 overflow-hidden">
@@ -1191,45 +1497,66 @@ function MenuCard({ item, quantity, onAdd, onRemove }) {
       </div>
       <div className="flex flex-1 flex-col p-5">
         <h3 className="font-display text-lg leading-snug text-[#f3e3bf]">{item.name}</h3>
-        <p className="mt-2 flex-1 text-sm leading-relaxed text-zinc-400">{item.description}</p>
-        <div className="mt-5 flex items-center justify-between gap-3 border-t border-white/5 pt-4">
-          <span className="font-display text-xl text-[#e6b95c]">{money(item.price)}</span>
-          {quantity > 0 ? (
-            <div className="flex items-center gap-1 rounded-full border border-[#e6b95c]/50 p-1">
-              <button
-                type="button"
-                onClick={() => onRemove(item.id)}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-[#e6b95c] transition hover:bg-white/10 active:scale-90"
-                aria-label={`Remover um ${item.name}`}
-              >
-                <Minus className="h-4 w-4" />
-              </button>
-              <span className="w-6 text-center font-semibold text-white" aria-live="polite">
-                {quantity}
-              </span>
-              <button
-                type="button"
-                onClick={() => onAdd(item.id)}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#e6b95c] text-black active:scale-90"
-                aria-label={`Adicionar mais um ${item.name}`}
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-          ) : (
-            <button type="button" onClick={() => onAdd(item.id)} className={`${BTN_OUTLINE} !px-4 !py-2 text-sm`}>
-              <Plus className="h-4 w-4" />
-              Adicionar
-            </button>
-          )}
+        {item.description && <p className="mt-2 text-sm leading-relaxed text-zinc-400">{item.description}</p>}
+        <VariantPrices item={item} />
+        {item.options?.length > 0 && (
+          <p className="mt-3 text-xs text-zinc-500">
+            Você escolhe: {item.options.map((opt) => opt.label.toLowerCase()).join(", ")}
+          </p>
+        )}
+        <div className="mt-auto flex items-center justify-between gap-3 border-t border-white/5 pt-4">
+          <PriceTag item={item} className="font-display text-xl text-[#e6b95c]" />
+          <ItemAction item={item} cart={cart} onChoose={onChoose} onChangeQty={onChangeQty} />
         </div>
       </div>
     </article>
   );
 }
 
-function MenuSection({ cart, onAdd, onRemove }) {
+function MenuRow({ item, cart, onChoose, onChangeQty }) {
+  return (
+    <li className="flex items-center gap-4 py-4">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/5 text-xl" aria-hidden="true">
+        {item.emoji}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="flex flex-wrap items-center gap-2 font-display text-[#f3e3bf]">
+          {item.name}
+          {item.popular && (
+            <span className="rounded-full bg-[#f59e0b] px-2 py-0.5 font-body text-[10px] font-bold text-black uppercase">
+              Mais Pedido
+            </span>
+          )}
+        </p>
+        {item.description && <p className="mt-0.5 text-xs text-zinc-500">{item.description}</p>}
+        {item.variants ? (
+          <p className="mt-1 text-sm text-zinc-400">
+            {item.variants.map((v, i) => (
+              <span key={v.id}>
+                {i > 0 && <span className="text-zinc-600"> · </span>}
+                {v.label} <span className="text-[#e6b95c]">{money(v.price)}</span>
+              </span>
+            ))}
+          </p>
+        ) : (
+          <p className="mt-1 font-display text-[#e6b95c]">{money(item.price)}</p>
+        )}
+      </div>
+      <ItemAction item={item} cart={cart} onChoose={onChoose} onChangeQty={onChangeQty} compact />
+    </li>
+  );
+}
+
+function MenuSection({ cart, onChoose, onChangeQty }) {
   const [category, setCategory] = useState("todos");
+  const listRef = useRef(null);
+
+  const selectCategory = (id) => {
+    setCategory(id);
+    // Se a lista já passou do topo, volta para o início dela ao trocar de categoria
+    const list = listRef.current;
+    if (list && list.getBoundingClientRect().top < 0) list.scrollIntoView({ block: "start" });
+  };
 
   const counts = useMemo(() => {
     const result = { todos: MENU.length };
@@ -1239,8 +1566,12 @@ function MenuSection({ cart, onAdd, onRemove }) {
     return result;
   }, []);
 
-  const items = useMemo(
-    () => (category === "todos" ? MENU : MENU.filter((item) => item.category === category)),
+  const groups = useMemo(
+    () =>
+      CATEGORIES.filter((c) => c.id !== "todos" && (category === "todos" || c.id === category)).map((c) => ({
+        ...c,
+        items: MENU.filter((item) => item.category === c.id),
+      })),
     [category]
   );
 
@@ -1250,12 +1581,12 @@ function MenuSection({ cart, onAdd, onRemove }) {
         <SectionTitle
           script="Escolha, adicione e peça"
           title="Nosso Cardápio"
-          subtitle="Monte seu pedido aqui e enviamos tudo prontinho para o nosso WhatsApp oficial. Simples assim."
+          subtitle="Pratos feitos, chapas especiais, pratos completos e bebidas bem geladas. Monte seu pedido e enviamos prontinho para o nosso WhatsApp."
         />
         <div
           role="tablist"
           aria-label="Categorias do cardápio"
-          className="no-scrollbar sticky top-[72px] z-30 -mx-4 mb-10 flex gap-2 overflow-x-auto bg-[#121113]/90 px-4 py-3 backdrop-blur-md sm:mx-0 sm:flex-wrap sm:justify-center sm:rounded-full"
+          className="no-scrollbar sticky top-[72px] z-30 -mx-4 mb-10 flex gap-2 overflow-x-auto bg-[#121113]/90 px-4 py-3 backdrop-blur-md sm:mx-0 sm:flex-wrap sm:justify-center sm:rounded-3xl"
         >
           {CATEGORIES.map(({ id, label, icon: Icon }) => {
             const active = category === id;
@@ -1265,7 +1596,7 @@ function MenuSection({ cart, onAdd, onRemove }) {
                 type="button"
                 role="tab"
                 aria-selected={active}
-                onClick={() => setCategory(id)}
+                onClick={() => selectCategory(id)}
                 className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm transition active:scale-95 ${
                   active
                     ? "bg-[#e6b95c] font-semibold text-black"
@@ -1281,16 +1612,180 @@ function MenuSection({ cart, onAdd, onRemove }) {
             );
           })}
         </div>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {items.map((item) => (
-            <MenuCard key={item.id} item={item} quantity={cart[item.id] || 0} onAdd={onAdd} onRemove={onRemove} />
+
+        <div ref={listRef} className="scroll-mt-40 space-y-16">
+          {groups.map((group) => (
+            <div key={group.id}>
+              <div className="mb-6 flex items-center gap-4">
+                <h3 className="font-display text-2xl text-[#f3e3bf] md:text-3xl">{group.label}</h3>
+                <span className="h-px flex-1 bg-gradient-to-r from-[#e6b95c]/40 to-transparent" />
+              </div>
+              {COMPACT_CATEGORIES.has(group.id) ? (
+                <ul className="grid divide-y divide-white/5 rounded-3xl border border-white/10 bg-[#18181b] px-5 md:grid-cols-2 md:gap-x-10 md:divide-y-0 [&>li]:border-white/5 md:[&>li]:border-b">
+                  {group.items.map((item) => (
+                    <MenuRow key={item.id} item={item} cart={cart} onChoose={onChoose} onChangeQty={onChangeQty} />
+                  ))}
+                </ul>
+              ) : (
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {group.items.map((item) => (
+                    <MenuCard key={item.id} item={item} cart={cart} onChoose={onChoose} onChangeQty={onChangeQty} />
+                  ))}
+                </div>
+              )}
+            </div>
           ))}
         </div>
         <p className="mt-10 text-center text-xs text-zinc-500">
-          Preços e disponibilidade sujeitos a alteração. Confirme o valor final com nossa equipe no WhatsApp.
+          Preços conforme o cardápio da casa, sujeitos a alteração. Confirme o valor final com nossa equipe no WhatsApp.
         </p>
       </div>
     </section>
+  );
+}
+
+/* Janela para escolher tamanho, sabor, acompanhamentos e ponto da carne */
+function ItemOptionsSheet({ item, onClose, onConfirm }) {
+  const [variantId, setVariantId] = useState(item.variants?.[0]?.id ?? "");
+  const [options, setOptions] = useState({});
+  const [qty, setQty] = useState(1);
+  const [showMissing, setShowMissing] = useState(false);
+  const closeRef = useRef(null);
+
+  const missing = (item.options ?? []).filter((opt) => !options[opt.id]);
+  const unitPrice = item.variants ? getVariant(item, variantId)?.price ?? 0 : item.price;
+
+  useEffect(() => {
+    const onKey = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    closeRef.current?.focus();
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  const confirm = () => {
+    if (missing.length) {
+      setShowMissing(true);
+      return;
+    }
+    onConfirm(item.id, variantId, options, qty);
+  };
+
+  const chipClass = (active) =>
+    `rounded-full px-4 py-2.5 text-sm transition active:scale-95 ${
+      active
+        ? "bg-[#e6b95c] font-semibold text-black"
+        : "border border-white/15 text-zinc-300 hover:border-[#e6b95c]/60 hover:text-[#e6b95c]"
+    }`;
+
+  return (
+    <div className="fixed inset-0 z-[65] flex items-end justify-center sm:items-center sm:p-6">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Escolher opções de ${item.name}`}
+        className="relative flex max-h-[90svh] w-full max-w-lg flex-col rounded-t-3xl border border-[#e6b95c]/25 bg-[#16140f] shadow-2xl sm:rounded-3xl"
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 pt-5 pb-4">
+          <div>
+            <p className="font-script text-2xl text-[#e6b95c]">Monte do seu jeito</p>
+            <p className="font-display text-2xl leading-tight text-[#f3e3bf]">{item.name}</p>
+            {item.description && <p className="mt-1 text-sm text-zinc-400">{item.description}</p>}
+          </div>
+          <button
+            ref={closeRef}
+            type="button"
+            onClick={onClose}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/5 text-zinc-300 transition hover:bg-white/10"
+            aria-label="Fechar"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 space-y-6 overflow-y-auto overscroll-contain px-5 py-5">
+          {item.variants && (
+            <fieldset>
+              <legend className={LABEL_CLASS}>Tamanho</legend>
+              <div className="flex flex-wrap gap-2">
+                {item.variants.map((v) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    aria-pressed={variantId === v.id}
+                    onClick={() => setVariantId(v.id)}
+                    className={chipClass(variantId === v.id)}
+                  >
+                    {v.label} · {money(v.price)}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          )}
+          {(item.options ?? []).map((opt) => {
+            const isMissing = showMissing && !options[opt.id];
+            return (
+              <fieldset key={opt.id}>
+                <legend className={`${LABEL_CLASS} ${isMissing ? "!text-[#f97316]" : ""}`}>
+                  {opt.label} {isMissing && "· escolha uma opção"}
+                </legend>
+                <div className={`flex flex-wrap gap-2 rounded-2xl ${isMissing ? "ring-1 ring-[#f97316]/60 ring-offset-4 ring-offset-[#16140f]" : ""}`}>
+                  {opt.choices.map((choice) => (
+                    <button
+                      key={choice}
+                      type="button"
+                      aria-pressed={options[opt.id] === choice}
+                      onClick={() => setOptions((prev) => ({ ...prev, [opt.id]: choice }))}
+                      className={chipClass(options[opt.id] === choice)}
+                    >
+                      {choice}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            );
+          })}
+          <div className="flex items-center justify-between">
+            <span className={LABEL_CLASS}>Quantidade</span>
+            <div className="flex items-center gap-1 rounded-full border border-[#e6b95c]/50 p-1">
+              <button
+                type="button"
+                onClick={() => setQty((q) => Math.max(1, q - 1))}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-[#e6b95c] active:scale-90"
+                aria-label="Diminuir quantidade"
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+              <span className="w-8 text-center font-semibold text-white">{qty}</span>
+              <button
+                type="button"
+                onClick={() => setQty((q) => q + 1)}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#e6b95c] text-black active:scale-90"
+                aria-label="Aumentar quantidade"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-white/10 px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <button type="button" onClick={confirm} className={`${BTN_GOLD} w-full py-4 text-base`}>
+            <Plus className="h-5 w-5" />
+            {missing.length && showMissing
+              ? `Escolha: ${missing.map((m) => m.label.toLowerCase()).join(", ")}`
+              : `Adicionar · ${money(unitPrice * qty)}`}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1335,7 +1830,7 @@ function HoursSection({ status }) {
         <SectionTitle
           script="Horários & clima da casa"
           title="A brasa acende todo dia"
-          subtitle="Do almoço de domingo ao último chopp da sexta, tem sempre uma mesa esperando você."
+          subtitle="Do almoço de domingo à última cerveja da sexta, tem sempre uma mesa esperando você."
         />
         <div className="grid gap-6 lg:grid-cols-5">
           <div className="overflow-hidden rounded-3xl border border-[#e6b95c]/25 bg-black/60 backdrop-blur-md lg:col-span-2">
@@ -1599,7 +2094,7 @@ const INPUT_CLASS =
   "w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-base text-white placeholder:text-zinc-600 focus:border-[#e6b95c]/60 focus:ring-2 focus:ring-[#e6b95c]/20 focus:outline-none";
 const LABEL_CLASS = "mb-1.5 block text-xs font-semibold tracking-widest text-zinc-400 uppercase";
 
-function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear }) {
+function CartDrawer({ open, onClose, cart, onChangeQty, onDelete, onClear }) {
   const [orderType, setOrderType] = useState("delivery");
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
@@ -1609,8 +2104,19 @@ function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear })
   const lines = useMemo(
     () =>
       Object.entries(cart)
-        .filter(([id, qty]) => MENU_BY_ID[id] && qty > 0)
-        .map(([id, qty]) => ({ ...MENU_BY_ID[id], qty, subtotal: MENU_BY_ID[id].price * qty })),
+        .filter(([, line]) => isValidLine(line))
+        .map(([key, line]) => {
+          const item = MENU_BY_ID[line.itemId];
+          return {
+            id: key,
+            qty: line.qty,
+            name: lineTitle(line),
+            details: lineDetails(line),
+            image: item.image,
+            emoji: item.emoji,
+            subtotal: linePrice(line) * line.qty,
+          };
+        }),
     [cart]
   );
   const total = useMemo(() => lines.reduce((sum, line) => sum + line.subtotal, 0), [lines]);
@@ -1621,7 +2127,10 @@ function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear })
     const parts = [
       "Olá, Ponto da Costela! 🔥 Gostaria de fazer um pedido:",
       "",
-      ...lines.map((line) => `• ${line.qty}x ${line.name} — ${money(line.subtotal)}`),
+      ...lines.flatMap((line) => [
+        `• ${line.qty}x ${line.name} — ${money(line.subtotal)}`,
+        ...(line.details.length ? [`   ↳ ${line.details.join(" | ")}`] : []),
+      ]),
       "",
       `*Total estimado: ${money(total)}*`,
       "",
@@ -1695,7 +2204,7 @@ function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear })
             <BrandLogo className="h-24 w-24" />
             <p className="font-display text-2xl text-[#f3e3bf]">A grelha ainda está vazia</p>
             <p className="text-sm text-zinc-400">
-              Adicione a costela, uns petiscos e aquele chopp gelado. A gente cuida do resto.
+              Adicione a costela, um prato completo e aquela cerveja gelada. A gente cuida do resto.
             </p>
             <a href="#cardapio" onClick={onClose} className={`${BTN_GOLD} mt-2`}>
               <UtensilsCrossed className="h-4 w-4" />
@@ -1716,7 +2225,12 @@ function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear })
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="font-display leading-snug text-[#f3e3bf]">{line.name}</p>
+                        <div>
+                          <p className="font-display leading-snug text-[#f3e3bf]">{line.name}</p>
+                          {line.details.length > 0 && (
+                            <p className="mt-0.5 text-xs leading-snug text-zinc-400">{line.details.join(" · ")}</p>
+                          )}
+                        </div>
                         <button
                           type="button"
                           onClick={() => onDelete(line.id)}
@@ -1730,7 +2244,7 @@ function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear })
                         <div className="flex items-center gap-1 rounded-full border border-[#e6b95c]/40 p-0.5">
                           <button
                             type="button"
-                            onClick={() => onRemove(line.id)}
+                            onClick={() => onChangeQty(line.id, -1)}
                             className="flex h-8 w-8 items-center justify-center rounded-full text-[#e6b95c] active:scale-90"
                             aria-label={`Diminuir ${line.name}`}
                           >
@@ -1739,7 +2253,7 @@ function CartDrawer({ open, onClose, cart, onAdd, onRemove, onDelete, onClear })
                           <span className="w-6 text-center text-sm font-semibold text-white">{line.qty}</span>
                           <button
                             type="button"
-                            onClick={() => onAdd(line.id)}
+                            onClick={() => onChangeQty(line.id, 1)}
                             className="flex h-8 w-8 items-center justify-center rounded-full text-[#e6b95c] active:scale-90"
                             aria-label={`Aumentar ${line.name}`}
                           >
@@ -1985,6 +2499,7 @@ export default function App() {
   const toastTimer = useRef(null);
   const [cart, setCart] = useState(loadCart);
   const [cartOpen, setCartOpen] = useState(false);
+  const [choosingId, setChoosingId] = useState(null);
   const [toast, setToast] = useState("");
   const [focusMode, setFocusMode] = useState(prefersReducedMotion);
   const [userPaused, setUserPaused] = useState(false);
@@ -2030,26 +2545,40 @@ export default function App() {
     toastTimer.current = window.setTimeout(() => setToast(""), 1800);
   };
 
-  const addItem = (id) => {
-    setCart((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
-    const item = MENU_BY_ID[id];
-    if (item) showToast(`${item.name} adicionado!`);
+  const addLine = (itemId, variantId = "", options = {}, qty = 1) => {
+    const key = makeLineKey(itemId, variantId, options);
+    setCart((prev) => ({
+      ...prev,
+      [key]: { itemId, variantId, options, qty: (prev[key]?.qty ?? 0) + qty },
+    }));
+    const line = { itemId, variantId, options, qty };
+    showToast(`${lineTitle(line)} adicionado!`);
   };
 
-  const removeItem = (id) => {
+  // Itens com tamanho/opções abrem a janela de escolha; os demais entram direto
+  const chooseItem = (itemId) => {
+    const item = MENU_BY_ID[itemId];
+    if (!item) return;
+    if (needsChoice(item)) setChoosingId(itemId);
+    else addLine(itemId);
+  };
+
+  const changeQty = (key, delta) => {
     setCart((prev) => {
-      const qty = (prev[id] || 0) - 1;
+      const line = prev[key];
+      if (!line) return prev;
       const next = { ...prev };
-      if (qty > 0) next[id] = qty;
-      else delete next[id];
+      const qty = line.qty + delta;
+      if (qty > 0) next[key] = { ...line, qty };
+      else delete next[key];
       return next;
     });
   };
 
-  const deleteItem = (id) => {
+  const deleteLine = (key) => {
     setCart((prev) => {
       const next = { ...prev };
-      delete next[id];
+      delete next[key];
       return next;
     });
   };
@@ -2057,15 +2586,15 @@ export default function App() {
   const { cartCount, cartTotal } = useMemo(() => {
     let count = 0;
     let total = 0;
-    Object.entries(cart).forEach(([id, qty]) => {
-      const item = MENU_BY_ID[id];
-      if (!item) return;
-      count += qty;
-      total += item.price * qty;
+    Object.values(cart).forEach((line) => {
+      if (!isValidLine(line)) return;
+      count += line.qty;
+      total += linePrice(line) * line.qty;
     });
     return { cartCount: count, cartTotal: total };
   }, [cart]);
 
+  const closeChooser = useMemo(() => () => setChoosingId(null), []);
   const closeCart = useMemo(() => () => setCartOpen(false), []);
 
   return (
@@ -2085,8 +2614,8 @@ export default function App() {
       <main>
         <Hero status={status} />
         <AboutSection />
-        <Highlights onAdd={addItem} />
-        <MenuSection cart={cart} onAdd={addItem} onRemove={removeItem} />
+        <Highlights onChoose={chooseItem} />
+        <MenuSection cart={cart} onChoose={chooseItem} onChangeQty={changeQty} />
         <HoursSection status={status} />
         <LocationSection />
       </main>
@@ -2108,16 +2637,26 @@ export default function App() {
         videoFailed={videoFailed}
       />
       <FloatingCartButton count={cartCount} total={cartTotal} onClick={() => setCartOpen(true)} />
-      <Toast message={cartOpen ? "" : toast} />
+      <Toast message={cartOpen || choosingId ? "" : toast} />
       <CartDrawer
         open={cartOpen}
         onClose={closeCart}
         cart={cart}
-        onAdd={addItem}
-        onRemove={removeItem}
-        onDelete={deleteItem}
+        onChangeQty={changeQty}
+        onDelete={deleteLine}
         onClear={() => setCart({})}
       />
+      {choosingId && MENU_BY_ID[choosingId] && (
+        <ItemOptionsSheet
+          key={choosingId}
+          item={MENU_BY_ID[choosingId]}
+          onClose={closeChooser}
+          onConfirm={(itemId, variantId, options, qty) => {
+            addLine(itemId, variantId, options, qty);
+            setChoosingId(null);
+          }}
+        />
+      )}
     </div>
   );
 }
