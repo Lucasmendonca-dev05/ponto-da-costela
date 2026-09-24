@@ -632,7 +632,7 @@ function BackgroundVideo({ videoRef, playing, focusMode, onAllSourcesFailed, vid
           preload="auto"
           poster={VIDEO_POSTER}
           disablePictureInPicture
-          className={`absolute inset-0 h-full w-full transform-gpu object-cover will-change-transform [filter:sepia(.35)_saturate(.9)_brightness(.85)] transition-opacity duration-700 ${
+          className={`absolute inset-0 h-full w-full transform-gpu object-cover will-change-transform [filter:sepia(.12)_saturate(1.05)_brightness(.95)] transition-opacity duration-700 ${
             playing ? "opacity-100" : "opacity-80"
           }`}
         >
@@ -642,9 +642,10 @@ function BackgroundVideo({ videoRef, playing, focusMode, onAllSourcesFailed, vid
         </video>
       )}
       {/* Tom quente de luz de brasa sobre o vídeo */}
-      <div className="absolute inset-0 bg-[#3b1a06]/35 mix-blend-multiply" />
-      {/* Overlay para legibilidade */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-[#0f0f11] backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-[#3b1a06]/20 mix-blend-multiply" />
+      {/* Overlay leve (sem desfoque) + sombra suave no centro para o texto continuar legível */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/30 to-[#0f0f11]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.4)_0%,transparent_65%)]" />
       <div className="absolute inset-x-0 bottom-0 h-1/2 bg-[radial-gradient(ellipse_at_bottom,rgba(234,88,12,0.18)_0%,transparent_70%)]" />
       <EmberCanvas active={videoFailed && !focusMode} />
     </div>
@@ -743,8 +744,8 @@ function Logo() {
 
 const NAV_LINKS = [
   { href: "#inicio", label: "Início" },
-  { href: "#cardapio", label: "Cardápio" },
   { href: "#destaques", label: "Destaques da Brasa" },
+  { href: "#cardapio", label: "Cardápio" },
   { href: "#horarios", label: "Horários" },
   { href: "#localizacao", label: "Localização" },
 ];
@@ -923,7 +924,7 @@ function Hero({ status }) {
 
   return (
     <section id="inicio" className="relative flex min-h-[calc(100svh-7rem)] scroll-mt-24 items-center">
-      <div className="mx-auto flex w-full max-w-5xl flex-col items-center px-4 pt-16 pb-12 text-center sm:px-6 md:pt-24">
+      <div className="text-shadow-hero mx-auto flex w-full max-w-5xl flex-col items-center px-4 pt-16 pb-12 text-center sm:px-6 md:pt-24">
         <p className="font-script text-3xl text-[#e6b95c] md:text-4xl">Churrasco raiz desde o Arruda</p>
         <h1 className="mt-3 font-display text-[2.6rem] leading-[1.05] font-medium text-[#f3e3bf] sm:text-6xl lg:text-7xl">
           O Verdadeiro <em className="text-[#e6b95c]">Churrasco Raiz</em>
@@ -1433,7 +1434,7 @@ function LocationSection() {
   return (
     <section id="localizacao" className="relative scroll-mt-24">
       {/* Janela transparente: o vídeo fixo de fundo aparece aqui */}
-      <div className="relative flex min-h-[70svh] flex-col items-center justify-center px-4 py-24 text-center">
+      <div className="text-shadow-hero relative flex min-h-[70svh] flex-col items-center justify-center px-4 py-24 text-center">
         <p className="font-script text-3xl text-[#e6b95c] md:text-4xl">Vem pro Arruda</p>
         <h2 className="mt-2 max-w-3xl font-display text-4xl leading-tight text-[#f3e3bf] md:text-6xl">
           Esperamos você para uma noite de brasa
@@ -1555,6 +1556,7 @@ function Footer() {
         <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-zinc-500 sm:flex-row">
           <p>© {new Date().getFullYear()} Ponto da Costela - Recife. Todos os direitos reservados.</p>
           <nav className="flex gap-4">
+            <a href="#destaques" className="hover:text-[#e6b95c]">Destaques</a>
             <a href="#cardapio" className="hover:text-[#e6b95c]">Cardápio</a>
             <a href="#horarios" className="hover:text-[#e6b95c]">Horários</a>
             <a href="#localizacao" className="hover:text-[#e6b95c]">Localização</a>
@@ -1945,6 +1947,7 @@ const GLOBAL_STYLES = `
     50% { box-shadow: 0 0 38px -4px rgba(234, 88, 12, .55); }
   }
   .glow-btn { animation: gold-glow 3s ease-in-out infinite; }
+  .text-shadow-hero h1, .text-shadow-hero h2, .text-shadow-hero p { text-shadow: 0 2px 18px rgba(0, 0, 0, .75), 0 1px 3px rgba(0, 0, 0, .6); }
   .no-scrollbar { scrollbar-width: none; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after {
